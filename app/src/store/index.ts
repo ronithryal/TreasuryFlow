@@ -104,7 +104,7 @@ export interface RootState {
   injectInbound: (inbound: { collectionAccountId: AccountId; amount: number }) => string;
 
   /** Demo scenario triggers — wired to the Overview buttons. */
-  triggerScenario: (kind: "sweep" | "rebalance" | "friday_payout" | "deposit_routing" | "month_end") => void;
+  triggerScenario: (kind: "sweep" | "rebalance" | "friday_payout" | "deposit_routing" | "month_end" | "wallet_connect_sweep" | "morpho_yield" | "anomaly_warning" | "counterparty_risk" | "market_shock" | "predictive_forecast" | "audit_pdf") => void;
 }
 
 // Internal helpers ---------------------------------------------------------
@@ -517,10 +517,42 @@ export const useStore = create<RootState>()(
             break;
           }
           case "month_end":
-            // Pure UI navigation hint — no state changes here. The Reconciliation
-            // page consumes this scenario directly. We still log the audit event
-            // so the trail shows something happened.
             break;
+          case "wallet_connect_sweep": {
+            const policy = get().policies.find((p) => p.type === "sweep" && p.sourceAccountIds.includes("acc_base_ops" as AccountId));
+            if (policy) get().runPolicy(policy.id, { force: true });
+            break;
+          }
+          case "morpho_yield": {
+            const id = "i_morpho" + Date.now();
+            set({ intents: [{
+              id: id as IntentId, policyId: null, amount: 80000, asset: "USDC", sourceAccountId: "acc_base_ops" as AccountId, destinationAccountId: "morpho_contract" as AccountId, type: "sweep", status: "pending_approval", riskFlags: [], rationale: "Yield deposit to Morpho", createdAt: state.now
+            }, ...state.intents] });
+            break;
+          }
+          case "anomaly_warning": {
+            const id = "i_anomaly" + Date.now();
+            set({ intents: [{
+              id: id as IntentId, policyId: null, amount: 110000, asset: "USDC", sourceAccountId: "acc_base_ops" as AccountId, destinationAccountId: "new_vendor" as AccountId, type: "sweep", status: "pending_approval", riskFlags: [{ kind: "high_risk", note: "Large unusual transfer at odd time" }], rationale: "Unusual transfer", createdAt: state.now
+            }, ...state.intents] });
+            break;
+          }
+          case "counterparty_risk": {
+            // pure UI hint, handled in overview route
+            break;
+          }
+          case "market_shock": {
+            // pure UI hint
+            break;
+          }
+          case "predictive_forecast": {
+            // pure UI hint
+            break;
+          }
+          case "audit_pdf": {
+            // pure UI hint
+            break;
+          }
         }
       },
     }),

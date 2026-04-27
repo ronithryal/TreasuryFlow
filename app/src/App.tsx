@@ -7,6 +7,9 @@ import { Policies } from "@/pages/Policies";
 import { Approvals } from "@/pages/Approvals";
 import { Activity } from "@/pages/Activity";
 import { Accounts } from "@/pages/Accounts";
+import { Risk } from "@/pages/Risk";
+import { Forecast } from "@/pages/Forecast";
+import { Audit } from "@/pages/Audit";
 import { Reconciliation } from "@/pages/Reconciliation";
 import { Settings } from "@/pages/Settings";
 import { useStore } from "@/store";
@@ -18,6 +21,9 @@ const PAGE_META: Record<string, { title: string; subtitle?: string }> = {
   "/approvals": { title: "Approvals", subtitle: "Pending decisions and review queue" },
   "/activity": { title: "Activity", subtitle: "Unified operations and audit history" },
   "/accounts": { title: "Accounts", subtitle: "Wallets, reserves, and settlement destinations" },
+  "/risk": { title: "Counterparty Risk", subtitle: "AI-driven risk scoring and analysis" },
+  "/forecast": { title: "Predictive Forecast", subtitle: "Balance projections and AI rebalancing" },
+  "/audit": { title: "Audit Reports", subtitle: "Immutable onchain records and AI rationale" },
   "/reconciliation": { title: "Reconciliation", subtitle: "Ledger review and close-ready exports" },
   "/settings": { title: "Settings", subtitle: "Roles, thresholds, and funding rails" },
 };
@@ -61,6 +67,9 @@ export function App() {
       <Route path="/approvals">{() => <Shell path="/approvals"><Approvals /></Shell>}</Route>
       <Route path="/activity">{() => <Shell path="/activity"><Activity /></Shell>}</Route>
       <Route path="/accounts">{() => <Shell path="/accounts"><Accounts /></Shell>}</Route>
+      <Route path="/risk">{() => <Shell path="/risk"><Risk /></Shell>}</Route>
+      <Route path="/forecast">{() => <Shell path="/forecast"><Forecast /></Shell>}</Route>
+      <Route path="/audit">{() => <Shell path="/audit"><Audit /></Shell>}</Route>
       <Route path="/reconciliation">{() => <Shell path="/reconciliation"><Reconciliation /></Shell>}</Route>
       <Route path="/settings">{() => <Shell path="/settings"><Settings /></Shell>}</Route>
     </Switch>

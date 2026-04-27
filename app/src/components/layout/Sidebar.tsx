@@ -17,6 +17,9 @@ const NAV = [
   { href: "/approvals", label: "Approvals", icon: Clock },
   { href: "/activity", label: "Activity", icon: Activity },
   { href: "/accounts", label: "Accounts", icon: Wallet2 },
+  { href: "/risk", label: "Risk", icon: ShieldCheck },
+  { href: "/forecast", label: "Forecast", icon: Activity },
+  { href: "/audit", label: "Audit", icon: FileSpreadsheet },
   { href: "/reconciliation", label: "Reconciliation", icon: FileSpreadsheet },
   { href: "/settings", label: "Settings", icon: Settings2 },
 ];

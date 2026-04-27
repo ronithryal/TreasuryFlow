@@ -27,6 +27,9 @@ export function Topbar({ title, subtitle }: { title: string; subtitle?: string }
         {subtitle ? <p className="text-xs text-muted-foreground">{subtitle}</p> : null}
       </div>
       <div className="flex items-center gap-3">
+        {/* Web3Modal button */}
+        {/* @ts-expect-error custom element */}
+        <w3m-button />
         {/* User switcher (maker-checker demo) */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

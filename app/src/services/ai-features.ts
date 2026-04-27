@@ -130,3 +130,39 @@ Ledger entries: ${stats.totalEntries} total — ${stats.tagged} tagged, ${stats.
 Failed intents: ${stats.failedIntents}`;
   return getClient().ask({ instructions, input, signal: startCall("close-summary") });
 }
+
+// ---------- 5. Anomaly Explanation ----------
+export async function explainAnomaly(intent: Intent, history: LedgerEntry[]): Promise<string> {
+  const instructions = "Explain if this transaction is normal or concerning based on its details and history in 1-2 sentences.";
+  const input = `Transaction: $${intent.amount} to ${intent.counterpartyId}. History count: ${history.length}.`;
+  return getClient().ask({ instructions, input, signal: startCall("explain-anomaly-" + intent.id) });
+}
+
+// ---------- 6. Counterparty Risk Assessment ----------
+export async function assessCounterpartyRisk(counterparty: Counterparty, intent: Intent): Promise<string> {
+  const instructions = "Rate this counterparty's risk (low/medium/high). Consider: amount, timing, frequency, name, prior patterns. Explain briefly.";
+  const input = `Counterparty: ${counterparty.name}. Intent amount: $${intent.amount}.`;
+  return getClient().ask({ instructions, input, signal: startCall("assess-risk-" + counterparty.id) });
+}
+
+// ---------- 7. Market Shock Insight ----------
+export async function generateMarketInsight(symbol: string, percent: number, rates: string): Promise<string> {
+  const instructions = "Suggest a rebalancing strategy in 1-2 sentences given this market shock.";
+  const input = `Market alert: ${symbol} moved ${percent}%. Current rates are ${rates}.`;
+  return getClient().ask({ instructions, input, signal: startCall("market-shock") });
+}
+
+// ---------- 8. Audit Report Rationale ----------
+export async function generateAuditRationale(policyDecision: any): Promise<string> {
+  const instructions = "Explain why this policy fired in 1-2 sentences for an audit report.";
+  const input = `Decision: ${JSON.stringify(policyDecision)}`;
+  return getClient().ask({ instructions, input, signal: startCall("audit-rationale") });
+}
+
+// ---------- 9. Predictive Forecasting ----------
+export async function forecastBalances(pattern: string, scheduledIntents: Intent[]): Promise<string> {
+  const instructions = "Based on scheduled intents and historical patterns, forecast balances 3/5/7 days out and recommend rebalancing.";
+  const input = `Pattern: ${pattern}. Scheduled: ${scheduledIntents.length}.`;
+  return getClient().ask({ instructions, input, signal: startCall("forecast-balances") });
+}
+

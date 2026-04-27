@@ -21,11 +21,13 @@ import {
 import { Link } from "wouter";
 
 const SCENARIOS = [
-  { kind: "sweep" as const, label: "Trigger reserve sweep", desc: "Base Operating → Reserve" },
-  { kind: "rebalance" as const, label: "Trigger rebalance", desc: "Eth Reserve → Polygon Refunds" },
-  { kind: "friday_payout" as const, label: "Run Friday payout", desc: "5 payouts incl. bank cash-out" },
-  { kind: "deposit_routing" as const, label: "Inbound deposit", desc: "90/10 split routing" },
-  { kind: "month_end" as const, label: "Month-end close", desc: "Review + export ledger" },
+  { kind: "wallet_connect_sweep" as const, label: "1) Wallet + Sweep", desc: "Connect & sweep policy" },
+  { kind: "morpho_yield" as const, label: "2) Morpho Yield", desc: "Deposit to Morpho" },
+  { kind: "anomaly_warning" as const, label: "3) Anomaly Warning", desc: "High value + odd time" },
+  { kind: "counterparty_risk" as const, label: "4) Counterparty Risk", desc: "First time vendor" },
+  { kind: "market_shock" as const, label: "5) Market Shock", desc: "Price alert -> rebalance" },
+  { kind: "predictive_forecast" as const, label: "6) Predictive Forecast", desc: "Balance forecast 1-7 days" },
+  { kind: "audit_pdf" as const, label: "7) Audit PDF", desc: "Generate report with proofs" },
 ] as const;
 
 export function Overview() {
@@ -58,11 +60,13 @@ export function Overview() {
 
     // Route to relevant page based on scenario
     const routeMap: Record<typeof SCENARIOS[number]["kind"], string> = {
-      sweep: "/activity",
-      rebalance: "/activity",
-      friday_payout: "/approvals",
-      deposit_routing: "/activity",
-      month_end: "/reconciliation",
+      wallet_connect_sweep: "/activity",
+      morpho_yield: "/activity",
+      anomaly_warning: "/approvals",
+      counterparty_risk: "/approvals",
+      market_shock: "/activity",
+      predictive_forecast: "/accounts",
+      audit_pdf: "/reconciliation",
     };
 
     await new Promise((r) => setTimeout(r, 800));
