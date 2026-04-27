@@ -47,8 +47,14 @@ The billion-dollar path for a treasury app isn't managing money—it's **reducin
 - Dark mode + light mode
 - Persistent state (localStorage)
 - User switching (simulate maker-checker roles)
-- 5 demo scenario buttons (sweep, rebalance, payout batch, deposit routing, month-end close)
+- 7 demo scenario buttons (Wallet Connect, Morpho Yield, Anomaly, Risk, Market Shock, Forecast, Audit)
 - Risk flags with descriptive context
+
+✅ **Web3 & Smart Contracts (Phase 0)**
+- Deployed to Base Sepolia (PolicyEngine, IntentRegistry, LedgerContract)
+- WalletConnect integration via Web3Modal
+- Morpho Yield integration
+- 5 new AI-powered hooks (Anomaly detection, Risk scoring, Market shock insights, Predictive forecasting, Audit rationales)
 
 ### Verified
 - 28 unit tests (policy engine, approvals, execution, ledger, reconciliation — 100% branch coverage)
@@ -193,13 +199,15 @@ Reduce audit burden by 60%: every decision logged with rationale, policy version
 
 ## Testing the Demo
 
-**5 scenario buttons on Overview page:**
+**7 scenario buttons on Overview page:**
 
-1. **Sweep Trigger** — Base Operating exceeds $186.4k → creates sweep intent → approve → ledger updates
-2. **Rebalance** — Polygon Refunds at $14.8k (below floor) → proposes inflow from reserve
-3. **Friday Payout Batch** — 5 vendor payouts, one flagged as over normal range, one routed through bank
-4. **Inbound Deposit Routing** — $42k inbound → 90/10 split to reserve and operating
-5. **Month-End Close** — Review and tag missing ledger entries, export CSV
+1. **Wallet + Sweep** — Connect Wallet & trigger sweep policy
+2. **Morpho Yield** — Deposit idle USDC to Morpho for yield
+3. **Anomaly Warning** — High-value transfer at odd time triggers AI review
+4. **Counterparty Risk** — First-time vendor triggers AI risk assessment
+5. **Market Shock** — Price alert triggers rebalancing suggestion
+6. **Predictive Forecast** — AI balance projections 1-7 days out
+7. **Audit PDF** — Generate immutable onchain audit report
 
 Each scenario completes its full lifecycle visibly: intent → approval (if needed) → execution → ledger update.
 

@@ -78,11 +78,21 @@
 - Export presets: CSV with required columns for ERP import
 - Deterministic replay from genesis ensures no orphan ledger entries
 
-✅ **Perplexity Integration (3 surfaces wired)**
+✅ **Perplexity Integration (8 surfaces wired)**
 - Intent explainer: "Why did this intent fire?" → rationale + citations
 - Tag suggester: "What's the accounting category?" → JSON with confidence + reasoning
 - Policy drafter: "Convert this rule to a policy" → structured JSON validated vs schema
+- Anomaly scorer flags unusual patterns
+- Counterparty risk assessment
+- Market shock detection and rebalancing suggestion
+- Predictive balance forecasting
+- Audit rationale explanations
 - Mock fallback: works without API key, used for local dev + demo
+
+✅ **Web3 & Contracts (Phase 0)**
+- Base Sepolia contracts tested and verified (PolicyEngine, IntentRegistry, LedgerContract)
+- WalletConnect via Web3Modal functional
+- Morpho Yield integration scaffolded
 
 ✅ **Production Build**
 - 145KB gzip (React 18 + domain logic + UI + styles)
@@ -94,7 +104,7 @@
 
 | Item | Impact | Mitigation |
 |------|--------|-----------|
-| No real onchain execution | Demo only, no actual transactions | Coinbase for Business integration (in progress, scaffolded) |
+| Mainnet execution pending | Currently Base Sepolia testnet only | Coinbase for Business integration in Phase 3 |
 | No real bank settlement | Cash-out simulated only | Coinbase Offramp integration (in progress, scaffolded) |
 | No auth/RBAC | Role switching via topbar dropdown only | Session-based auth deferred to v1.1 |
 | localStorage only | Data lost on clear, no sync | Not an issue for demo; production proxy + backend TBD |

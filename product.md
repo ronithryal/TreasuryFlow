@@ -138,11 +138,17 @@ TreasuryFlow solves this by making trust verifiable, composable, and **non-custo
 - Policy drafting assistant (natural language → policy JSON)
 - Month-end completeness scoring and CSV export (ERP-ready)
 - Dark mode + persistent state + demo reset
+- Base Sepolia smart contracts for onchain verification
+- WalletConnect integration for true non-custodial UX
+- Morpho Yield integration flow
+- 5 advanced AI features (Anomaly detection, Risk scoring, Market shock insights, Predictive forecasting, Audit rationales)
+- 7 comprehensive demo scenarios
 
 **Verified:**
 - 28 unit tests (policy engine, approvals, execution, ledger, reconciliation)
 - 4 end-to-end demo scenarios (sweep, rebalance, payout batch, deposit routing)
 - Perplexity Agent API integration with mock fallback (no API key required for demo)
+- Base Sepolia contract compilation and tests passing (PolicyEngine, IntentRegistry, LedgerContract)
 - Production build: 145KB gzip, zero TS errors, runs in preview mode
 
 ## User Personas & Value

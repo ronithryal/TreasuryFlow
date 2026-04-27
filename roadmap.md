@@ -59,9 +59,9 @@
 
 | Status | Milestone | Est. Hours | Cheap LLM | Dependencies |
 |--------|-----------|-----------|-----------|--------------|
-| 🔵 Pending | PolicyEngine.sol | 3 | Haiku (classification) | Solidity |
-| 🔵 Pending | IntentRegistry.sol | 3 | Haiku (logging) | Solidity |
-| 🔵 Pending | LedgerContract.sol | 2 | None (pure contract) | Solidity |
+| ✅ Shipped | PolicyEngine.sol | 3 | Haiku (classification) | Solidity |
+| ✅ Shipped | IntentRegistry.sol | 3 | Haiku (logging) | Solidity |
+| ✅ Shipped | LedgerContract.sol | 2 | None (pure contract) | Solidity |
 
 **What:** Solidity contracts for policy execution + immutable ledger (NOT a vault)
 
@@ -89,9 +89,9 @@
 
 | Status | Milestone | Est. Hours | Cheap LLM | Dependencies |
 |--------|-----------|-----------|-----------|--------------|
-| 🔵 Pending | WalletConnect + ethers.js | 4 | Haiku (wrapper) | JavaScript, ethers.js v6 |
-| 🔵 Pending | Morpho yield integration | 2 | Haiku (SDK wrapper) | Morpho SDK, Base Sepolia |
-| 🔵 Pending | Contract ABI + provider setup | 2 | None (config) | Alchemy/Infura RPC |
+| ✅ Shipped | WalletConnect + ethers.js | 4 | Haiku (wrapper) | JavaScript, ethers.js v6 |
+| ✅ Shipped | Morpho yield integration | 2 | Haiku (SDK wrapper) | Morpho SDK, Base Sepolia |
+| ✅ Shipped | Contract ABI + provider setup | 2 | None (config) | Alchemy/Infura RPC |
 
 **What:** Integrate WalletConnect + contract calls (users keep USDC in their own wallet)
 
@@ -115,9 +115,9 @@
 
 | Status | Milestone | Est. Hours | Cheap LLM | Dependencies |
 |--------|-----------|-----------|-----------|--------------|
-| 🔵 Pending | Anomaly scorer (high-value, timing, counterparty, rapid transfers, balance drops) | 2 | Haiku (threshold checks) | None (pure logic) |
-| 🔵 Pending | Perplexity integration (call on anomaly) | 2 | **Haiku** (explanation) | Perplexity API |
-| 🔵 Pending | UI: inline anomaly warnings on Activity page | 2 | None (UI) | React components |
+| ✅ Shipped | Anomaly scorer (high-value, timing, counterparty, rapid transfers, balance drops) | 2 | Haiku (threshold checks) | None (pure logic) |
+| ✅ Shipped | Perplexity integration (call on anomaly) | 2 | **Haiku** (explanation) | Perplexity API |
+| ✅ Shipped | UI: inline anomaly warnings on Activity page | 2 | None (UI) | React components |
 
 **What:** Flag unusual transaction patterns (high-value, odd timing, new counterparty, rapid transfers, balance drops), Perplexity explains if normal or risky.
 
@@ -141,9 +141,9 @@ if balance_drop > 20%: score += 30
 
 | Status | Milestone | Est. Hours | Cheap LLM | Dependencies |
 |--------|-----------|-----------|-----------|--------------|
-| 🔵 Pending | Risk assessment on first transaction with new counterparty | 2 | **Sonnet** (reasoning) | Perplexity API |
-| 🔵 Pending | Risk dashboard (table + trend sparklines) | 2 | None (UI) | React components |
-| 🔵 Pending | Update score on each transaction | 1 | Haiku (re-evaluation) | Event listener |
+| ✅ Shipped | Risk assessment on first transaction with new counterparty | 2 | **Sonnet** (reasoning) | Perplexity API |
+| ✅ Shipped | Risk dashboard (table + trend sparklines) | 2 | None (UI) | React components |
+| ✅ Shipped | Update score on each transaction | 1 | Haiku (re-evaluation) | Event listener |
 
 **What:** On first transaction with new counterparty, Perplexity rates risk (low/medium/high) with reasoning. Show on approval UI + risk dashboard.
 
@@ -157,10 +157,10 @@ if balance_drop > 20%: score += 30
 
 | Status | Milestone | Est. Hours | Cheap LLM | Dependencies |
 |--------|-----------|-----------|-----------|--------------|
-| 🔵 Pending | Price feed poller (CoinGecko API every 5 min) | 1 | None (API call) | CoinGecko free API |
-| 🔵 Pending | Threshold detector (if move > 5%, alert) | 1 | Haiku (threshold) | None |
-| 🔵 Pending | Perplexity market insight (suggest rebalance opportunity) | 1 | **Haiku** (suggestion) | Perplexity API |
-| 🔵 Pending | UI: "🚨 Market shock" alert with Perplexity insight | 1 | None (UI) | React |
+| ✅ Shipped | Price feed poller (CoinGecko API every 5 min) | 1 | None (API call) | CoinGecko free API |
+| ✅ Shipped | Threshold detector (if move > 5%, alert) | 1 | Haiku (threshold) | None |
+| ✅ Shipped | Perplexity market insight (suggest rebalance opportunity) | 1 | **Haiku** (suggestion) | Perplexity API |
+| ✅ Shipped | UI: "🚨 Market shock" alert with Perplexity insight | 1 | None (UI) | React |
 
 **What:** Monitor USDC/ETH/BTC rates every 5 min. If move > 5%, trigger alert + Perplexity suggests rebalancing.
 
@@ -174,9 +174,9 @@ if balance_drop > 20%: score += 30
 
 | Status | Milestone | Est. Hours | Cheap LLM | Dependencies |
 |--------|-----------|-----------|-----------|--------------|
-| 🔵 Pending | Ledger aggregation (collect transactions + approvals from contract events) | 2 | None (pure logic) | Contract events |
-| 🔵 Pending | Perplexity summaries (call for each policy decision: "Explain why this policy fired") | 2 | **Haiku** (summary) | Perplexity API |
-| 🔵 Pending | PDF generation (ledger + decisions + Perplexity citations) | 1 | None (library) | pdfkit or similar |
+| ✅ Shipped | Ledger aggregation (collect transactions + approvals from contract events) | 2 | None (pure logic) | Contract events |
+| ✅ Shipped | Perplexity summaries (call for each policy decision: "Explain why this policy fired") | 2 | **Haiku** (summary) | Perplexity API |
+| ✅ Shipped | PDF generation (ledger + decisions + Perplexity citations) | 1 | None (library) | pdfkit or similar |
 
 **What:** On-demand PDF audit reports with full ledger + policy decisions + Perplexity-generated rationales + citations.
 
@@ -194,9 +194,9 @@ if balance_drop > 20%: score += 30
 
 | Status | Milestone | Est. Hours | Cheap LLM | Dependencies |
 |--------|-----------|-----------|-----------|--------------|
-| 🔵 Pending | Pattern detection (identify recurring intents: payroll Fri, sweep Mon) | 2 | Haiku (pattern) | Contract event history |
-| 🔵 Pending | Perplexity forecast (given upcoming intents + patterns, forecast balances 1–7 days) | 1 | **Sonnet** (forecasting) | Perplexity API |
-| 🔵 Pending | UI: forecast card on Accounts page (predicted balances + recommendation) | 1 | None (UI) | React |
+| ✅ Shipped | Pattern detection (identify recurring intents: payroll Fri, sweep Mon) | 2 | Haiku (pattern) | Contract event history |
+| ✅ Shipped | Perplexity forecast (given upcoming intents + patterns, forecast balances 1–7 days) | 1 | **Sonnet** (forecasting) | Perplexity API |
+| ✅ Shipped | UI: forecast card on Accounts page (predicted balances + recommendation) | 1 | None (UI) | React |
 
 **What:** Analyze past intent patterns (payroll on Friday, sweep on Monday). Perplexity forecasts balance changes 1–7 days out. Recommend proactive rebalancing.
 
