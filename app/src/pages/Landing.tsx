@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ export function Landing({ onEnter }: { onEnter?: () => void } = {}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"landing" | "login">("landing");
-  const [, navigate] = useNavigate();
+  const [, navigate] = useLocation();
   const setDemoEntered = useStore((s) => s.setDemoEntered);
 
   const handleDemoClick = () => {
@@ -117,7 +117,7 @@ export function Landing({ onEnter }: { onEnter?: () => void } = {}) {
               Automate your treasury. Reduce the cost of trust.
             </h1>
             <p className="text-xl text-muted-foreground mb-6">
-              TreasuryFlow uses Perplexity Agent API to provide <span className="font-semibold text-foreground">24/7, verifiable audits</span> of your digital dollar reserves, automating the $500k/year accounting firm role while responding to market shocks in seconds.
+              TreasuryFlow is the non-custodial treasury operating system for the digital dollar economy — automating policy execution, continuous AI-verified audits, and real-time market response, all without ever touching your funds. <span className="font-semibold text-foreground">We don't ask you to trust us. We prove it onchain.</span>
             </p>
           </div>
 

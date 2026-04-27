@@ -1,18 +1,17 @@
-# TreasuryFlow
+# TreasuryFlow (Phase 0 MVP)
 
-**AI-powered treasury operations console** using Perplexity Agent API for 24/7, verifiable, and cited audits of digital dollar reserves.
+**TreasuryFlow is the non-custodial treasury operating system for the digital dollar economy — automating policy execution, continuous AI-verified audits, and real-time market response, all without ever touching your funds. We don't ask you to trust us. We prove it onchain.**
 
-[Vision](#vision) • [Features](#features) • [Quick Start](#quick-start) • [Architecture](#architecture) • [Roadmap](#roadmap)
+---
 
-## Vision
+### The Problem
+Traditional treasury operations are slow, manual, and expensive. Accounting firms charge $200k–$500k/year for audits that happen months after the fact. Market shocks require days of manual reconciliation. Reconciliation consumes 1–2 full-time employees.
 
-> "Our app uses Perplexity Agent API to provide 24/7, verifiable, and cited audits of our reserves, effectively automating the $500k/year role of a traditional accounting firm while responding to market shocks in seconds."
-
-The billion-dollar path for a treasury app isn't managing money—it's **reducing the cost of trust**. TreasuryFlow automates:
-- Continuous, verifiable audits (every transaction auto-tagged and explained)
-- 24/7 policy engine (sweep, rebalance, payout rules fire automatically)
-- Real-time market response (<30 seconds from shock to rebalancing)
-- Compliance as code (policies embed approvals, limits, and audit trails)
+### The Solution
+TreasuryFlow replaces the "trust us" model with mathematical proof. We combine:
+1. **Onchain Policy Engine** (Base Sepolia) — Immutable rules for sweeps, payouts, and rebalancing.
+2. **AI-Powered Forensics** (Perplexity Agent API) — Continuous, 24/7 auditing with automated transaction rationales and risk scoring.
+3. **Non-Custodial WalletConnect Flow** — You keep your keys. We just make sure your money does exactly what you told it to do.
 
 ## Features
 

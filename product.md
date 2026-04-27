@@ -1,24 +1,24 @@
 # Product Log — TreasuryFlow
 
-## Vision
+## Vision & Thesis
 
-**"A non-custodial treasury protocol on Base that automates policy execution (sweep, rebalance, payout) and provides 24/7, verifiable, cited audits—reducing the $500k/year cost of trust while keeping users in control of their keys."**
+The $500B corporate treasury industry is built on a broken promise: *trust us with your money and we'll tell you what happened, quarterly.*
 
-The billion-dollar path for a treasury app isn't managing money—it's **reducing the cost of trust** without taking custody. Traditional treasury operations rely on:
-- Manual reconciliation (1–2 FTE per $50M AUM)
-- Quarterly or semi-annual audits ($200k–500k each)
-- Latency on policy decisions (days to weeks)
-- Opaque counterparty risk + settlement gaps (ledger ≠ reality)
-- Custody risk (trusting a third party with millions)
+**TreasuryFlow replaces that promise with proof.**
 
-TreasuryFlow solves this by making trust verifiable, composable, and **non-custodial**:
-1. **Non-custodial execution** — Users hold USDC in their own wallet (MetaMask, Ledger, Gnosis Safe, etc., via WalletConnect). Policies route instructions; users sign transactions.
-2. **Immutable audit trail** — Every transaction logged as contract events on Base. No ledger-to-reality gaps; regulators can verify independently via Etherscan.
-3. **Zero custody risk** — No insurance, no regulatory burden as a custodian, no hacks of centralized vaults. Users hold their own keys, TreasuryFlow never touches them.
-4. **Yield on idle cash** — Optional: auto-deposit idle USDC to Morpho (5–10% APY) while remaining non-custodial. User owns mUSDC position, earns interest.
-5. **Continuous, cited audits** — Every transaction auto-tagged, categorized, and explained with Perplexity citations.
-6. **24/7 policy engine** — Sweep, rebalance, payout rules fire autonomously; approvals in seconds, execution in blocks.
-7. **Composable settlement** — Other protocols route payments through your policy engine; earn fees on every transfer.
+We're building the first non-custodial treasury protocol where policies execute autonomously, every decision is cited and verifiable, and audits happen 24/7 — not once a year. Your USDC stays in your wallet. Your keys stay with you. TreasuryFlow just makes sure your money does exactly what you told it to do, and proves it onchain.
+
+The billion-dollar insight isn't treasury management — it's **eliminating the cost of trust.** Traditional treasury ops cost $200k–500k/year in audits, 1–2 FTEs in reconciliation, and days of latency on every decision. TreasuryFlow collapses all of that: policies fire in seconds, Perplexity AI cites every transaction automatically, regulators can verify independently via Etherscan, and idle USDC earns yield through Morpho — all without a custodian in the loop.
+
+We're not crypto for crypto's sake. USDC on Base is just better settlement infrastructure — faster, cheaper, and fully auditable compared to ACH. Any company moving money should be using it.
+
+The future of treasury operations isn't a better bank. It's a **verifiable, composable, AI-audited policy engine** that never asks you to hand over your keys.
+
+## Core Problem: The Latency of Trust
+Current treasury operations (SAP, Oracle, NetSuite) are passive. They record what happened in the past. To ensure correctness, companies hire auditors (Big Four) to manually verify those records against bank statements. This creates:
+1. **High Cost:** $500k+/year for mid-market audits.
+2. **High Latency:** Market shocks (e.g., SVB collapse) require manual response that takes days/weeks.
+3. **Operational Drag:** Reconciliation is a full-time job of tagging and matching.
 
 ## "Billion Dollar Path" — Core Features to Add
 
