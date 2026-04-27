@@ -306,56 +306,176 @@ audit_log (id, entity_id, user_id, action, entity_type, entity_id, changes, crea
 
 ---
 
-## Phase 5: Production Features (Week 5+, v1.0+)
+## Phase 5: "Billion Dollar" Features — 24/7 Audits + Market Shock Response (v1.0→v1.1)
 
-**These unlock customer sales:**
+**These unlock the vision: 24/7 verifiable audits + market shock response. Customer-facing and revenue-generating.**
 
-### 5.1 Counterparty Management
+### 5.1 Real-Time Audit Report Generation
 
-**What:** Add/edit counterparties with KYC status
+**What:** On-demand PDF audit reports with Perplexity-generated explanations
 
 **Implement:**
-- CRUD endpoints for counterparties
-- KYC status field (pending, verified, declined)
-- Integration hook: flag first-time counterparty for manual KYC check
-- Limit enforcement: policy engine checks `normal_range_min/max` before posting intent
+- Backend: PDF generation service (PDFKit or ReportLab)
+- Endpoint: `GET /api/audit-report?from=...&to=...` → PDF
+- Content: full ledger, policy decisions, approval chain, Perplexity summaries (1-3 sentences per policy + citations)
+- Perplexity prompt: "Summarize why this policy decision was made. Include key factors and risks considered."
+- UI: "Generate report" button in Reconciliation, exports PDF with timestamp
+
+**Estimate:** 4 hours (backend) + 2 hours (UI)
+
+**Impact:** Automates 60% of audit prep work ($300k/year savings per customer)
+
+### 5.2 Anomaly Detection Engine (via Perplexity)
+
+**What:** Flag unusual transaction patterns and ask Perplexity to explain them
+
+**Implement:**
+- Anomaly scorer (compute on each new ledger entry):
+  - High-value transfer (>2x normal for counterparty)
+  - Unusual time-of-day (outside 9-5 business hours)
+  - New counterparty (first transaction)
+  - Rapid sequential transfers (>3 in 1 hour)
+  - Balance drop >20% in single day
+- Call Perplexity when score > threshold:
+  - Prompt: "This transaction flagged as unusual. Explain if it's normal or concerning: [transaction details + nearby history]"
+  - Show Perplexity response inline on Activity page, Approvals page
+- Confidence score: "This looks normal (92% confidence)" vs. "⚠️ High risk (78% confidence)"
+
+**Estimate:** 3 hours (scorer) + 2 hours (Perplexity integration)
+
+**Impact:** Catch fraud + operational errors before settlement
+
+### 5.3 Market Shock Detector & Auto-Rebalancing Alert
+
+**What:** Monitor price feeds, detect >X% move, trigger auto-rebalancing
+
+**Implement:**
+- Price feed poller (CoinGecko free API, every 5 min)
+- Threshold detector: if USDC, ETH, BTC moves >5%, trigger alert
+- Alert UI: dashboard alert "🚨 USDC rate moved +7.5% — rebalance opportunity"
+- Link to existing rebalance policy: "Trigger rebalance now"
+- Perplexity: "Based on current rates and your reserve composition, recommend moving $X to Y to maintain 60/40 balance"
+
+**Estimate:** 2 hours (price poller) + 1 hour (UI) + 1 hour (Perplexity)
+
+**Impact:** Prevent capital loss from rate swings; catch arbitrage opportunities
+
+### 5.4 Counterparty Risk Scoring (via Perplexity)
+
+**What:** AI-powered risk assessment based on transaction history
+
+**Implement:**
+- On first transaction with new counterparty, or on manual refresh:
+  - Gather: amount, timing, frequency, name, prior policy approvals
+  - Call Perplexity: "Rate this counterparty's risk (low/medium/high). Consider: amount ($X is 3x normal?), timing (business hours?), patterns (new vendor?). Explain."
+  - Show risk score + rationale on approval UI: "MEDIUM RISK: amount is 3x normal, but timing is business hours. Recommend approval with monitoring."
+- Risk dashboard: table of all counterparties with scores + trend sparklines
+- Update score after each transaction
+
+**Estimate:** 3 hours (risk engine) + 2 hours (Perplexity integration) + 1 hour (UI)
+
+**Impact:** 40% fewer approval delays; better risk transparency
+
+### 5.5 Settlement Verification (Onchain)
+
+**What:** Confirm ledger entries match actual onchain settlement
+
+**Implement:**
+- For onchain intents (sweep, rebalance, payout):
+  - After execution, poll Coinbase API for tx status
+  - Match ledger entry.txReference to actual onchain transaction
+  - Update ledger entry: `settlementStatus: "pending" | "confirmed" | "failed"`
+  - Show confirmation timestamp + block number on Activity page
+- For bank cash-outs:
+  - Webhook from Coinbase Offramp confirms ACH posted
+  - Update status: `bank_settlement_status: "pending" | "ach_posted" | "failed"`
+
+**Estimate:** 2 hours (Coinbase polling) + 1 hour (webhook handler)
+
+**Impact:** 100% audit trail integrity; eliminate ledger-to-reality gaps
+
+### 5.6 Predictive Rebalancing
+
+**What:** Forecast balance changes 1-7 days out, suggest proactive rebalancing
+
+**Implement:**
+- Pattern analysis: detect recurring intents (payroll on Fri, sweep on Mon, weekly vendors)
+- Perplexity: given upcoming scheduled intents + patterns, forecast balances in 3/5/7 days
+- Prompt: "Here are our scheduled intents for the next week. What will our balance look like in 3 days? Do we need to rebalance now?"
+- Recommendation: "Rebalance Polygon to reserve by Wed to cover Fri payroll (forecast balance: $5k, threshold: $25k)"
+- UI: forecast card in Accounts page showing predicted balances
+
+**Estimate:** 2 hours (pattern analysis) + 1 hour (Perplexity integration)
+
+**Impact:** Eliminate reactive rebalancing; more predictable cash position
+
+### 5.7 24/7 Audit API
+
+**What:** Public endpoint to generate audit report on-demand for regulators/auditors
+
+**Implement:**
+- Endpoint: `GET /api/v1/audit-report?from=2024-01-01&to=2024-01-31&format=pdf|json`
+- Auth: API key (with audit-read permission) or OAuth
+- Returns: full transaction ledger, policy decisions, approval chain, Perplexity summaries
+- Audit trail: log every request to audit_access_log
+- Compliance: responses are cryptographically signed (optional)
+
+**Estimate:** 1 hour (wrapper endpoint, reuse Phase 5.1 PDF generation)
+
+**Impact:** Regulators get real-time visibility; reduces audit friction
+
+### 5.8 Compliance Hooks (SAR, AML, KYC)
+
+**What:** Automated triggers for regulatory reporting
+
+**Implement:**
+- Triggers on intent creation:
+  - SAR: High-value transfer (>$10k) or 3+ transfers to same counterparty in <24h
+  - AML: Rapid transfers (>5 in <1h) or rapid consolidation pattern
+  - KYC: First transaction with counterparty above $50k
+- Event emitter: `complianceEvent({ type: 'sar' | 'aml' | 'kyc', intentId, reason })`
+- Perplexity: explain trigger ("Pattern matches money laundering: 5 small transfers consolidating to 1 large transfer")
+- UI: Compliance dashboard with flags + Perplexity explanations
+- Immutable log: write to audit_compliance table for regulators
+
+**Estimate:** 2 hours (trigger logic) + 1 hour (Perplexity) + 1 hour (UI)
+
+**Impact:** Reduce compliance burden; document all decisions
+
+---
+
+### 5.9 Counterparty Management (v1.1+)
+
+**What:** CRUD for counterparties + KYC status tracking
+
+**Status:** Nice-to-have for v1.0, prioritize if customers request
 
 **Estimate:** 3 hours
 
-### 5.2 Real Bank Settlement (Coinbase Offramp)
+### 5.10 Bank Settlement (Coinbase Offramp)
 
-**What:** Cash-out flows to actual ACH/wire via Coinbase
-
-**Status:** Pending approval (keep scaffolded in code, show as "coming soon" in UI)
+**Status:** ⏳ Pending approval (keep scaffolded in code, show as "coming soon")
 
 **Placeholder:**
 - Intent with `type: 'cash_out'` and `destination.preferredSettlement: 'bank_cashout'`
-- UI shows "Settlement pending partner availability"
-- Once approved, wire the Coinbase integration code when available
+- UI shows "Settlement via Coinbase Offramp (coming soon)"
+- Once approved, integrate the Coinbase Offramp API
 
-**Estimate:** 0 hours (defer, keep scaffolds)
+### 5.11 Multi-Currency Support (v1.1+)
 
-### 5.3 Multi-Currency Support
+**What:** Track BTC, ETH, USDT beyond USDC
 
-**What:** Track BTC, ETH, USDT, USDC, stablecoins
-
-**Changes:**
-- Add `asset` enum to ledger (not just USDC)
-- Price feed integration (CoinGecko free API) for reporting
-- Conversion rates in audit reports
+**Nice-to-have if:** Customers want cross-chain reserve management
 
 **Estimate:** 4 hours
 
-### 5.4 Streaming AI Responses
+### 5.12 Streaming AI Responses (v1.1+)
 
 **What:** Token-by-token rendering for policy drafter
 
-**Implement:**
-- Perplexity API supports streaming (OpenAI-compatible)
-- Frontend: show skeleton loader, render tokens as they arrive
-- Estimate: 30 min UI + 30 min API wrapper
+**Nice-to-have if:** Demo needs to show "AI thinking" in real-time
 
-**Estimate:** 1 hour (v1.1 nice-to-have)
+**Estimate:** 1 hour
 
 ---
 

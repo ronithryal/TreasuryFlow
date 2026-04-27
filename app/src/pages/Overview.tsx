@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useStore, selectors } from "@/store";
+import { useLocation } from "wouter";
 import { KpiCard } from "@/components/shared/KpiCard";
 import { LiquidityHealthCard } from "@/components/shared/LiquidityHealthCard";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -29,6 +30,7 @@ const SCENARIOS = [
 
 export function Overview() {
   const [running, setRunning] = useState<string | null>(null);
+  const [, navigate] = useLocation();
   const accounts = useStore((s) => s.accounts);
   const intents = useStore((s) => s.intents);
   const ledger = useStore((s) => s.ledger);
@@ -51,9 +53,21 @@ export function Overview() {
 
   async function runScenario(kind: typeof SCENARIOS[number]["kind"]) {
     setRunning(kind);
+    const countBefore = intents.length;
     triggerScenario(kind);
+
+    // Route to relevant page based on scenario
+    const routeMap: Record<typeof SCENARIOS[number]["kind"], string> = {
+      sweep: "/activity",
+      rebalance: "/activity",
+      friday_payout: "/approvals",
+      deposit_routing: "/activity",
+      month_end: "/reconciliation",
+    };
+
     await new Promise((r) => setTimeout(r, 800));
     setRunning(null);
+    navigate(routeMap[kind]);
   }
 
   return (

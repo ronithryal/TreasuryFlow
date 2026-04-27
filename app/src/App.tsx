@@ -1,6 +1,7 @@
 import { Switch, Route } from "wouter";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import { Landing } from "@/pages/Landing";
 import { Overview } from "@/pages/Overview";
 import { Policies } from "@/pages/Policies";
 import { Approvals } from "@/pages/Approvals";
@@ -36,9 +37,22 @@ function Shell({ path, children }: { path: string; children: React.ReactNode }) 
 
 export function App() {
   const darkMode = useStore((s) => s.ui.darkMode);
+  const demoEntered = useStore((s) => s.ui.demoEntered);
+  const setDemoEntered = useStore((s) => s.setDemoEntered);
+
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
+
+  // If user hasn't entered demo yet, show landing page
+  if (!demoEntered) {
+    return (
+      <Switch>
+        <Route path="/landing">{() => <Landing onEnter={() => setDemoEntered(true)} />}</Route>
+        <Route>{() => <Landing onEnter={() => setDemoEntered(true)} />}</Route>
+      </Switch>
+    );
+  }
 
   return (
     <Switch>

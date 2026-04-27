@@ -16,6 +16,113 @@ TreasuryFlow automates this by:
 3. **Real-time market response** — Detect imbalance or counterparty risk, trigger rebalancing, execute within seconds
 4. **Compliance as code** — Policies embed approval thresholds, counterparty limits, and audit trails; no manual compliance checks
 
+## "Billion Dollar Path" — Core Features to Add
+
+**Vision alignment: 24/7 verifiable audits + market shock response**
+
+### 1. Real-Time Audit Report Generation
+- **What:** On-demand PDF audit reports (daily/weekly)
+- **Why:** Customers need continuously-available audit evidence for regulators and stakeholders
+- **How:** 
+  - Backend service generates PDF with: full ledger, policy decisions, approval chain, balance reconciliation
+  - Perplexity API summarizes policy rationale (1-3 sentences per policy decision with citations)
+  - Append Perplexity citations as footnotes/appendix
+  - Available via API endpoint: `GET /api/audit-report?from=...&to=...` → PDF
+- **Impact:** Automates 60% of audit prep work ($300k/year savings)
+- **v1.0 target:** Basic PDF with Perplexity summaries
+
+### 2. Anomaly Detection Engine (via Perplexity)
+- **What:** Flag unusual transaction patterns and ask Perplexity to explain them
+- **Why:** Detect fraud, counterparty risk, or operational errors in real-time
+- **Anomalies to detect:**
+  - High-value transfer (>2x normal for counterparty)
+  - Unusual time-of-day (3am transfer when all others are 9-5)
+  - New counterparty (first transaction ever)
+  - Rapid sequential transfers to same recipient
+  - Balance drop >20% in single day
+- **How:** 
+  - On-ledger: compute anomaly score for each entry
+  - If score > threshold: call Perplexity with transaction + nearby history
+  - Perplexity response: "This looks like a normal end-of-month payroll sweep" or "⚠️ Unusual: new counterparty with high amount"
+  - Show as inline warning in Activity page
+- **Impact:** Catch fraud + operational errors before settlement
+- **v1.0 target:** 3-4 critical anomalies detected, Perplexity explains
+
+### 3. Market Shock Detector & Auto-Rebalancing
+- **What:** Monitor price feeds, detect >X% move, auto-trigger rebalancing
+- **Why:** Respond to market shocks in seconds, not days
+- **How:**
+  - Poll CoinGecko free API every 5 min for USDC/ETH/BTC rates
+  - If move >5%, trigger rebalancing policy (if enabled)
+  - Send alert to dashboard: "🚨 USDC rate moved 7.5% — triggered rebalance to maintain ratios"
+  - User clicks "View rebalance" → see intent, approve, execute
+- **Impact:** Prevent capital loss from rate swings; catch arbitrage opportunities
+- **v1.0 target:** Rate monitoring + alert; auto-rebalance is v1.1
+
+### 4. Counterparty Risk Scoring (via Perplexity)
+- **What:** AI-powered risk assessment based on transaction history + external signals
+- **Why:** Replace static limits with dynamic risk scores
+- **How:**
+  - On first transaction with new counterparty:
+    - Gather: amount, timing, frequency in peer group, name
+    - Send to Perplexity: "Rate this counterparty's risk (low/medium/high). Consider: amount, timing, historical patterns. Explain your reasoning."
+    - Perplexity response: "MEDIUM RISK: amount is 3x normal for this vendor, but timing is business hours and name matches legal entity. Recommend approval."
+    - Flag on approval UI with score + rationale
+  - Update score on each transaction
+  - Show risk dashboard: table of counterparties with trends
+- **Impact:** 40% fewer false positives in approval queue; better risk transparency
+- **v1.0 target:** Basic risk score + Perplexity explanation
+
+### 5. Settlement Verification (Onchain & Bank)
+- **What:** Confirm ledger entries match actual onchain/bank settlement
+- **Why:** Close the loop — prove settlements actually happened
+- **How:**
+  - For onchain: query Coinbase API → match ledger entry.txReference to actual tx
+  - For bank: wait for webhook from Coinbase Offramp confirming ACH posted
+  - On mismatch: flag "Settlement pending" → "Settlement confirmed" or "Settlement failed"
+  - Show confirmation timestamp on ledger entry
+- **Impact:** Eliminate ledger-to-reality gaps; 100% audit trail integrity
+- **v1.0 target:** Query chain for sweep intents; bank verification is v1.1
+
+### 6. Predictive Rebalancing
+- **What:** Forecast balance changes 1-7 days out, suggest proactive rebalancing
+- **Why:** Avoid surprises; move capital before need, not after
+- **How:**
+  - Historical analysis: payroll on Fridays, sweep on Mondays, weekly vendor payments
+  - Perplexity: given upcoming scheduled intents, what balances will look like in 3 days?
+  - Recommendation: "Rebalance Polygon to reserve by Wed to cover Fri payroll"
+  - User accepts → policy fires on schedule
+- **Impact:** Eliminate reactive rebalancing; more predictable cash position
+- **v1.0 target:** Rule-based forecast (payroll patterns); Perplexity assist is v1.1
+
+### 7. 24/7 Audit API
+- **What:** Public/authenticated endpoint to generate audit report on-demand
+- **Why:** Enable regulators, auditors, and stakeholders to pull evidence anytime
+- **How:**
+  - Endpoint: `GET /api/v1/audit-report?from=2024-01-01&to=2024-01-31&format=pdf|json`
+  - Returns: full transaction ledger, policy decisions, approval chain, Perplexity summaries
+  - Auth: API key (with audit-read permission) or OAuth
+  - Audit trail: log every request to audit-access log
+- **Impact:** Regulators get real-time visibility; reduces audit friction
+- **v1.0 target:** Internal API; external audit endpoint is v1.1
+
+### 8. Compliance Hooks (SAR, AML, KYC)
+- **What:** Automated triggers for regulatory reporting
+- **Why:** Catch reportable events before they become incidents
+- **Triggers:**
+  - SAR: High-value transfer (>$10k) or unusual pattern
+  - AML: Rapid transfers or new high-risk counterparty
+  - KYC: First transaction with counterparty above $50k
+- **How:**
+  - Event: intent created → check triggers → emit compliance_event
+  - Compliance service: logs to immutable audit_compliance table, alerts compliance officer
+  - Perplexity: explain why trigger fired ("Pattern matches money laundering: 5 small transfers consolidating to 1 large transfer")
+  - UI: compliance dashboard showing pending SAR/AML flags
+- **Impact:** Reduce compliance burden; document all decisions
+- **v1.0 target:** SAR logging; AML/KYC hooks are v1.1
+
+---
+
 ## Current State (MVP)
 
 **Shipped (v0.1):**

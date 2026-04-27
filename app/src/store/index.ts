@@ -47,6 +47,7 @@ const STORAGE_KEY = "treasuryflow:v1";
 interface UiState {
   forceMockAi: boolean;
   darkMode: boolean;
+  demoEntered: boolean;
 }
 
 export interface RootState {
@@ -72,6 +73,7 @@ export interface RootState {
   setCurrentUser: (id: UserId) => void;
   setForceMockAi: (v: boolean) => void;
   setDarkMode: (v: boolean) => void;
+  setDemoEntered: (v: boolean) => void;
 
   /** Run a policy against the current world. Adds intents + audit entries. */
   runPolicy: (policyId: PolicyId, opts?: { force?: boolean }) => Intent[];
@@ -200,7 +202,7 @@ export const useStore = create<RootState>()(
     (set, get) => ({
       schemaVersion: SCHEMA_VERSION,
       ...fromSeed(SEED),
-      ui: { forceMockAi: false, darkMode: false },
+      ui: { forceMockAi: false, darkMode: false, demoEntered: false },
 
       resetToSeed: () => {
         const fresh = fromSeed(SEED);
@@ -224,6 +226,7 @@ export const useStore = create<RootState>()(
         }
         set((s) => ({ ui: { ...s.ui, darkMode: v } }));
       },
+      setDemoEntered: (v) => set((s) => ({ ui: { ...s.ui, demoEntered: v } })),
 
       runPolicy: (policyId, opts) => {
         const state = get();
