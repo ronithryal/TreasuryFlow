@@ -1,0 +1,7 @@
+# Server-side only. Read by vite.config.ts inside the Node dev process. Never
+# bundled into the browser. Get a key at https://docs.perplexity.ai/.
+PERPLEXITY_API_KEY=
+
+# Optional. If set, the browser will POST to this URL instead of /api/agent-proxy.
+# Use this for deployed previews where you've stood up a serverless proxy.
+VITE_AGENT_PROXY_URL=
