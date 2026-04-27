@@ -2,19 +2,23 @@
 
 ## Vision
 
-**"Our app uses Perplexity Agent API to provide 24/7, verifiable, and cited audits of our reserves, effectively automating the $500k/year role of a traditional accounting firm while responding to market shocks in seconds."**
+**"A non-custodial treasury protocol on Base that automates policy execution (sweep, rebalance, payout) and provides 24/7, verifiable, cited audits—reducing the $500k/year cost of trust while keeping users in control of their keys."**
 
-The billion-dollar path for a treasury app isn't managing money—it's **reducing the cost of trust**. Traditional treasury operations rely on:
+The billion-dollar path for a treasury app isn't managing money—it's **reducing the cost of trust** without taking custody. Traditional treasury operations rely on:
 - Manual reconciliation (1–2 FTE per $50M AUM)
 - Quarterly or semi-annual audits ($200k–500k each)
 - Latency on policy decisions (days to weeks)
-- Opaque counterparty risk (static limits, no real-time verification)
+- Opaque counterparty risk + settlement gaps (ledger ≠ reality)
+- Custody risk (trusting a third party with millions)
 
-TreasuryFlow automates this by:
-1. **Continuous, verifiable audits** — Every transaction is auto-tagged, categorized, and explained with Perplexity citations
-2. **24/7 policy engine** — Sweep, rebalance, payout rules fire automatically; humans approve in seconds, not days
-3. **Real-time market response** — Detect imbalance or counterparty risk, trigger rebalancing, execute within seconds
-4. **Compliance as code** — Policies embed approval thresholds, counterparty limits, and audit trails; no manual compliance checks
+TreasuryFlow solves this by making trust verifiable, composable, and **non-custodial**:
+1. **Non-custodial execution** — Users hold USDC in their own wallet (MetaMask, Ledger, Gnosis Safe, etc., via WalletConnect). Policies route instructions; users sign transactions.
+2. **Immutable audit trail** — Every transaction logged as contract events on Base. No ledger-to-reality gaps; regulators can verify independently via Etherscan.
+3. **Zero custody risk** — No insurance, no regulatory burden as a custodian, no hacks of centralized vaults. Users hold their own keys, TreasuryFlow never touches them.
+4. **Yield on idle cash** — Optional: auto-deposit idle USDC to Morpho (5–10% APY) while remaining non-custodial. User owns mUSDC position, earns interest.
+5. **Continuous, cited audits** — Every transaction auto-tagged, categorized, and explained with Perplexity citations.
+6. **24/7 policy engine** — Sweep, rebalance, payout rules fire autonomously; approvals in seconds, execution in blocks.
+7. **Composable settlement** — Other protocols route payments through your policy engine; earn fees on every transfer.
 
 ## "Billion Dollar Path" — Core Features to Add
 
@@ -269,34 +273,132 @@ TreasuryFlow automates this by:
 
 ## Customer Archetypes
 
-**Ideal First Customers:**
-- $10M–500M AUM fintech / web3 platform treasuries
-- High-volume payout operations (payroll, customer refunds)
-- Multi-chain asset management (Base → Polygon arbitrage, Ethereum reserves)
-- Existing Coinbase Business account holders
+**Ideal First Customers (v1.0):**
+- **High-volume operators** ($10M–500M AUM): fintech platforms, payment networks, payroll processors doing 100+ transactions/month
+  - Example: Guidepoint (data platform) paying 50k contractors/month with USDC; today uses Coinbase API + manual reconciliation
+  - Example: Airbnb-style marketplace settling host payouts 2x/week with USDC
+  - Benefit: Automated policies (sweep when balance > $X, rebalance when rate moves >Y%) + immutable audit trail
+  
+- **Regulated entities** needing immutable audit trails + non-custodial settlement: stablecoins, RWA platforms, fintech
+  - Example: Company issuing USDC on Base (holding reserves, not end-user deposits)
+  - Benefit: Non-custodial = no insurance/custody risk. Immutable ledger = 24/7 regulatory visibility. Users verify on Etherscan.
+  
+- **Treasuries managing multi-chain reserves**: platforms holding USDC across Base, Polygon, Ethereum
+  - Example: Early-stage fintech with $50M in stablecoins across 3 chains
+  - Benefit: Atomic sweeps + rebalancing, no manual bridging, transparent costs, users hold their own keys
+  
+- **Any company using USDC as treasury rails** (not "crypto" — just better settlement than traditional banking)
 
 **Deal Structure:**
-- SaaS: $5k–50k/month based on AUM and policy count
-- Success fees: 10–20% of annual audit cost savings (only after savings verified)
+- **Primary**: Settlement fees (0.5–1 bps per transaction) — transparent, usage-driven, no custody
+  - $10M/month in sweeps = $50–100/month (vs. $1k+/month with Coinbase SaaS + API calls + audit costs)
+  - Zero custody risk = lower insurance, lower regulatory burden = customer saves 2-5bps vs. traditional banking
+  
+- **Secondary**: Optional SaaS tier ($5k–20k/month) for premium compliance, anomaly detection, DeFi integrations
+  
+- **Success model**: Customer saves $200k/year on audits (non-custodial = regulatory advantage) → we earn 10–20% of savings
 
 ## Competitive Differentiation
 
 | Feature | TreasuryFlow | Traditional | Competitors (Notional, Ondo, etc.) |
 |---------|--------------|-------------|-------------------------------------|
-| **24/7 Audits** | ✅ Perplexity-cited | Manual, quarterly | No |
-| **Natural Language Policies** | ✅ Draft with AI | No | No |
-| **Real-time Execution** | ✅ <30s approval+exec | 2–5 days | Minutes to hours |
-| **Multi-chain** | ✅ Base, Eth, Polygon | Single chain or custodian | Limited |
-| **Compliance Reporting** | ✅ PDF + SAR/AML hooks | Manual prep | Partial |
-| **Open Settlement** | ✅ Coinbase partner | N/A | Closed ecosystem |
-| **Cost to Customer** | $5k–50k/month | $500k/year audit + 1 FTE | $100k–250k/month |
+| **Custody Model** | ✅ Non-custodial (user controls keys) | Custodian (we hold your funds) | Mostly custodian |
+| **Wallet Control** | ✅ WalletConnect (any wallet they want) | Proprietary or embedded | Proprietary |
+| **Settlement Model** | ✅ Onchain (immutable, verifiable) | Bank or custodian | Custodian or wrapped |
+| **Yield on Idle Cash** | ✅ Morpho, Aave, others (user owns position) | Manual DeFi (risky) | Partial yields |
+| **Audit Trail** | ✅ Contract logs (queryable, tamper-proof) | Ledger (manual, audit-dependent) | Partial indexing |
+| **24/7 Audits** | ✅ Perplexity-cited + onchain proof | Manual, quarterly | No |
+| **Natural Language Policies** | ✅ Draft with AI → execute onchain | No | No |
+| **Real-time Execution** | ✅ <5s (direct contract call) | 2–5 days | Minutes to hours |
+| **Composability** | ✅ Other protocols call your treasury | No (closed custody) | Limited (gated) |
+| **Multi-chain** | ✅ Base + Ethereum + Polygon (future) | Single chain or custodian | Limited |
+| **Compliance Reporting** | ✅ PDF + SAR/AML hooks + onchain proof | Manual prep | Partial |
+| **Regulatory Advantage** | ✅ Non-custodial = no banking license needed | Custodian (regulated) | Varies |
+| **Fee Model** | ✅ Usage-driven (0.5–1 bps settlement) | Fixed SaaS + audit costs | Fixed SaaS |
+| **Regulatory Transparency** | ✅ Regulators query Etherscan directly | Auditor-dependent | Partial |
+| **Cost to Customer** | Settlement fees (0.5–1 bps) + optional SaaS | $500k/year audit + 1 FTE + $1k+/month | $100k–250k/month |
+
+## Technical Decisions & Architecture (Musings)
+
+### The Non-Custodial Mission
+
+**Our principle:** "Keep your USDC in YOUR wallet. We'll automate policies & prove execution onchain."
+
+Every technical decision flows from this. We don't hold funds, we don't hold keys, we don't take custody risk. Everything is non-custodial or it's not TreasuryFlow.
+
+---
+
+### Wallet Integration: Why WalletConnect
+
+**Decision: WalletConnect (primary) + Coinbase Onramp/Offramp (secondary fiat bridge)**
+
+**The choice:**
+- ❌ NOT embedded wallets (CDP) — those would mean "Coinbase holds your keys" (even if encrypted client-side)
+- ✅ YES WalletConnect — user picks ANY wallet they want (MetaMask, Ledger, Gnosis Safe, Trezor, hardware, etc.)
+
+**Why this matters:**
+- **"YOUR wallet"** is literally true — they control the keys, not us, not Coinbase
+- **Institutional-grade** — multi-sig treasuries, Gnosis Safe, hardware signers all work
+- **Future-proof** — ERC-4337 account abstraction wallets all support WalletConnect
+- **Flexible** — users upgrade wallets without re-onboarding
+
+**Trade-off:** Extra click (user approves in their wallet) vs. embedded wallet UX. For institutional treasuries managing millions, that's a feature.
+
+**Fiat flows (v1.1):** Coinbase Onramp (USD → USDC to their wallet) and Offramp (USDC → USD to bank) are pass-through bridges. User's USDC always lives in their WalletConnect wallet, never ours.
+
+---
+
+### Morpho Yield Integration: Earn Interest While Non-Custodial
+
+**Decision: Add Morpho yield to MVP (Base Sepolia testnet)**
+
+**The insight:** "Idle USDC earns nothing" is a real problem for treasuries. But we can solve it while staying 100% non-custodial.
+
+**How it works (non-custodial):**
+1. User creates policy: "If idle balance > $100k for >7 days, auto-deposit 80% to Morpho"
+2. When triggered:
+   - User's WalletConnect wallet signs: `USDC.approve(morphoRouter, amount)`
+   - User's wallet signs: `Morpho.supply(usdc, amount, user.address)` (not TreasuryFlow)
+   - Morpho mints mUSDC → sent to user's wallet
+   - User owns mUSDC position, earns interest automatically
+3. Result: **TreasuryFlow never touched USDC; user owns yield**
+
+**Why Morpho?**
+- Simplest non-custodial yield (vs. complex multi-step Aave or Curve strategies)
+- Good rates on Sepolia testnet for MVP demo (~5–10% APY)
+- User can withdraw anytime or migrate to other protocols later (composable)
+- Adds product value: "Automate policies AND earn yield"
+
+**Trade-off:** Adds ~3 hours of integration work. Value is high (solves real problem while proving non-custodial principle).
+
+**Future:** Aave, Curve, other protocols follow same pattern (user approves, owns position, TreasuryFlow just logs policy).
+
+---
+
+## How It All Fits: The Non-Custodial Promise
+
+**Mission:** "Keep your USDC in your wallet. We'll automate policies & prove execution onchain."
+
+**Architecture alignment:**
+- **WalletConnect** (not embedded wallets) = user picks their own wallet, keeps their own keys
+- **Morpho yield** (not proprietary strategies) = user owns mUSDC position, can move it anytime
+- **Onchain settlement** (not off-chain ledger) = immutable, verifiable, regulators can audit independently
+- **Non-custodial** (not regulated custody) = no banking license needed, lower regulatory burden, user trust is earned not demanded
+
+**Why this matters:**
+- Traditional treasuries: "Send us your millions, we promise not to lose them" (trust model)
+- TreasuryFlow: "Keep your millions, we'll prove execution onchain" (verification model)
+- The verification model reduces the "cost of trust" by 60–80% (audit costs drop, no custody insurance, regulatory advantage)
+
+---
 
 ## Anti-Goals
 
-- ❌ We are **not** a wallet or self-custody solution
-- ❌ We are **not** a trading bot or yield farming tool (we optimize allocation, not returns)
-- ❌ We are **not** replacing risk committees (policies are guardrails, humans decide strategy)
-- ❌ We are **not** a consumer app (B2B2C through platforms only)
+- ❌ We are **not** a custodian (users hold USDC in their WalletConnect wallet, not ours)
+- ❌ We are **not** a consumer wallet (institutional treasuries managing company USDC, not retail traders)
+- ❌ We are **not** a yield farming bot (we optimize capital allocation + compliance, not speculation/returns)
+- ❌ We are **not** replacing risk committees (policies are guardrails; humans decide strategy)
+- ❌ We are **not** "crypto for crypto's sake" (Base + USDC is settlement infrastructure, like companies use ACH)
 
 ## Go-to-Market (v1.0)
 
