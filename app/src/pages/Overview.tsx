@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useStore, selectors } from "@/store";
-import { useLocation } from "wouter";
+import { cn } from "@/lib/cn";
 import { KpiCard } from "@/components/shared/KpiCard";
 import { LiquidityHealthCard } from "@/components/shared/LiquidityHealthCard";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -18,7 +18,8 @@ import {
   RefreshCw,
   Zap,
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { ShieldCheck } from "lucide-react";
 
 const SCENARIOS = [
   { kind: "wallet_connect_sweep" as const, label: "1) Wallet + Sweep", desc: "Connect & sweep policy" },
@@ -37,6 +38,7 @@ export function Overview() {
   const intents = useStore((s) => s.intents);
   const ledger = useStore((s) => s.ledger);
   const triggerScenario = useStore((s) => s.triggerScenario);
+  const startWalkthrough = useStore((s) => s.startWalkthrough);
   const recentIntents = useStore((s) => selectors.recentIntents(s, 8));
   const pendingApprovals = useStore((s) => selectors.pendingApprovals(s));
   const policies = useStore((s) => s.policies);
@@ -55,8 +57,8 @@ export function Overview() {
 
   async function runScenario(kind: typeof SCENARIOS[number]["kind"]) {
     setRunning(kind);
-    const countBefore = intents.length;
     triggerScenario(kind);
+    startWalkthrough(kind);
 
     // Route to relevant page based on scenario
     const routeMap: Record<typeof SCENARIOS[number]["kind"], string> = {
@@ -69,13 +71,33 @@ export function Overview() {
       audit_pdf: "/reconciliation",
     };
 
-    await new Promise((r) => setTimeout(r, 800));
+    await new Promise((r) => setTimeout(r, 600));
     setRunning(null);
     navigate(routeMap[kind]);
   }
 
   return (
     <div className="space-y-6">
+      {/* Vision Banner */}
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 p-6">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-primary font-bold tracking-tight">
+              <ShieldCheck className="h-5 w-5" />
+              <span>SOVEREIGN LIQUIDITY. GOVERNED BY INTELLIGENCE.</span>
+            </div>
+            <p className="text-sm text-muted-foreground max-w-2xl">
+              TreasuryFlow proves every transaction onchain, eliminating the cost of trust through autonomous policy enforcement and forensic AI auditing.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-chart-5 animate-pulse" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Network Status: Base Sepolia Active</span>
+          </div>
+        </div>
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 h-32 w-32 bg-primary/10 blur-3xl rounded-full" />
+      </div>
+
       {/* KPI row */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard
@@ -239,26 +261,33 @@ export function Overview() {
       </Card>
 
       {/* Demo scenarios */}
-      <div>
-        <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Demo scenarios</h2>
-        <div className="flex flex-wrap gap-2">
+      <div className="pt-4 border-t border-card-border/50">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Proof-of-Value Scenarios</h2>
+          <span className="text-[10px] text-primary/60 font-medium italic">Click a scenario to launch an interactive walkthrough</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {SCENARIOS.map((s) => (
             <Button
               key={s.kind}
               variant="outline"
-              size="sm"
               onClick={() => runScenario(s.kind)}
               disabled={running !== null}
-              className="gap-2"
+              className="h-auto p-4 justify-start items-start gap-3 border-card-border hover:border-primary/50 hover:bg-primary/5 transition-all group"
             >
-              {running === s.kind ? (
-                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Zap className="h-3.5 w-3.5 text-primary" />
-              )}
-              <div className="text-left">
-                <div className="text-xs font-medium">{s.label}</div>
-                <div className="text-[10px] text-muted-foreground">{s.desc}</div>
+              <div className={cn(
+                "mt-0.5 h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
+                running === s.kind ? "bg-primary text-primary-foreground" : "bg-muted group-hover:bg-primary/20 text-muted-foreground group-hover:text-primary"
+              )}>
+                {running === s.kind ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Zap className="h-4 w-4" />
+                )}
+              </div>
+              <div className="text-left space-y-0.5">
+                <div className="text-sm font-bold tracking-tight">{s.label}</div>
+                <div className="text-[11px] leading-tight text-muted-foreground">{s.desc}</div>
               </div>
             </Button>
           ))}
