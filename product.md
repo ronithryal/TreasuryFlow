@@ -144,12 +144,23 @@ Current treasury operations (SAP, Oracle, NetSuite) are passive. They record wha
 - 5 advanced AI features (Anomaly detection, Risk scoring, Market shock insights, Predictive forecasting, Audit rationales)
 - 7 comprehensive demo scenarios
 
+**Shipped (v0.2 — dual-demo testnet architecture):**
+- `VITE_APP_MODE` feature flag: single `main` branch powers two Vercel deploys (mock demo + testnet demo) with zero code divergence
+- `MockUSDC` contract: ERC20 faucet (6 decimals, public `mint()`) for testnet onboarding
+- `TreasuryVault` contract: custodies testnet USDC, emits `PolicyExecuted(policyId, source, dest, amount, action)` on every approval — the cryptographic audit trail
+- Wallet hydration: `useAccount` connect → Zustand `hydrateTestnet()` wipes seed data and binds connected address as the operating account; live `balanceOf` polling updates UI every 8s
+- `TestnetSetupBanner`: connect-wallet → mint 100k mUSDC onboarding flow with block-confirmation feedback and Basescan tx link
+- `ApprovalDecisionBar`: testnet path runs `approve(USDC, vault, amount)` then `vault.executePolicy(...)` two-step before resolving intent in Zustand; mock path is pure Zustand
+- Audit page (`/audit`): testnet mode queries `PolicyExecuted` logs via `getLogs` filtered by wallet address, renders live feed with Basescan deeplinks — proving to investors that real tokens moved; mock mode unchanged
+- `Web3Provider` conditionally mounted only when `IS_TESTNET=true` — zero wagmi overhead in mock demo; all wagmi hooks live in sub-components (`TestnetHydrator`, `TestnetBannerContent`, `TestnetDecisionBar`) that never render outside `WagmiProvider`
+
 **Verified:**
 - 28 unit tests (policy engine, approvals, execution, ledger, reconciliation)
 - 4 end-to-end demo scenarios (sweep, rebalance, payout batch, deposit routing)
+- 3 Foundry tests (TreasuryVault: executePolicy pulls funds and emits, withdraw returns funds, reverts on zero amount)
 - Perplexity Agent API integration with mock fallback (no API key required for demo)
-- Base Sepolia contract compilation and tests passing (PolicyEngine, IntentRegistry, LedgerContract)
-- Production build: 145KB gzip, zero TS errors, runs in preview mode
+- Base Sepolia contract compilation and tests passing (PolicyEngine, IntentRegistry, LedgerContract, MockUSDC, TreasuryVault)
+- Production build: zero TS errors, clean Vite build
 
 ## User Personas & Value
 

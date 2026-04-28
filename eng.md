@@ -89,22 +89,31 @@
 - Audit rationale explanations
 - Mock fallback: works without API key, used for local dev + demo
 
-✅ **Web3 & Contracts (Phase 0)**
+✅ **Web3 & Contracts (Phase 0 + testnet engine)**
 - Base Sepolia contracts tested and verified (PolicyEngine, IntentRegistry, LedgerContract)
+- MockUSDC: ERC20 faucet (6 decimals, public `mint()`), deployed via updated `Deploy.s.sol`
+- TreasuryVault: pulls USDC from caller, emits `PolicyExecuted(policyId, source, dest, amount, action, timestamp)` — the onchain audit event the UI reads back
 - WalletConnect via Web3Modal functional
 - Morpho Yield integration scaffolded
+- `VITE_APP_MODE` feature flag: `"mock"` (default) or `"testnet"`, read at build time via `src/web3/mode.ts`
+- `Web3Provider` + `TestnetHydrator` mounted only when `IS_TESTNET=true`; mock demo loads with zero wagmi bundle overhead
+- Wallet hydration: `TestnetHydrator` watches `useAccount`, drives `hydrateTestnet()` on connect and live balance polling (`useBalance` + `useReadContract`) every 8–12s into Zustand `testnet` slice
+- `useTestnetExecution`: approve + executePolicy two-step, waits for receipts via `waitForTransactionReceipt`, records result in `testnet.executions`
+- `usePolicyExecutionLogs`: `getLogs(PolicyExecuted, { source: address })` from earliest block, refreshed every 15s — feeds the Audit page in testnet mode
 
 ✅ **Production Build**
-- 145KB gzip (React 18 + domain logic + UI + styles)
 - No external asset requests (fonts inlined via Tailwind)
-- Tree-shaken: unused code removed at build time
+- Tree-shaken: wagmi/viem code dead-code-eliminated in mock build (`IS_TESTNET` is a build-time constant)
 - Runs in preview mode without errors
+- Zero TS errors
 
 ## Known Limitations & Tech Debt
 
 | Item | Impact | Mitigation |
 |------|--------|-----------|
+| Contracts not yet deployed | Testnet demo needs `VITE_MOCK_USDC_ADDRESS` + `VITE_TREASURY_VAULT_ADDRESS` set | Run `forge script script/Deploy.s.sol --rpc-url base_sepolia --broadcast` |
 | Mainnet execution pending | Currently Base Sepolia testnet only | Coinbase for Business integration in Phase 3 |
+| TreasuryVault destination is placeholder | `executePolicy` logs `0x000…dEaD` as destination | Replace with real account address resolver when connecting to actual onchain accounts |
 | No real bank settlement | Cash-out simulated only | Coinbase Offramp integration (in progress, scaffolded) |
 | No auth/RBAC | Role switching via topbar dropdown only | Session-based auth deferred to v1.1 |
 | localStorage only | Data lost on clear, no sync | Not an issue for demo; production proxy + backend TBD |
@@ -115,10 +124,15 @@
 
 ## Deployment Notes
 
-**Dev:** `npm run dev` opens http://localhost:5173 with HMR
+**Dev (mock):** `npm run dev` opens http://localhost:5173 with HMR — no wallet or contract addresses needed
+**Dev (testnet):** set `VITE_APP_MODE=testnet` + contract addresses in `.env`, then `npm run dev`
 **Prod build:** `npm run build` → dist/, then `npm run preview` locally or deploy dist/ to any static host
+**Two Vercel projects, one branch:**
+- `demo-treasuryflow.vercel.app` → `VITE_APP_MODE=mock` (no Web3 env vars needed)
+- `testnet-treasuryflow.vercel.app` → `VITE_APP_MODE=testnet` + all Web3 env vars
+**Contract deployment:** `forge script script/Deploy.s.sol --rpc-url base_sepolia --broadcast --verify` — requires `PRIVATE_KEY` + `BASE_SEPOLIA_RPC_URL` in contracts/.env
 **Production Perplexity API:** Requires serverless proxy (e.g., Vercel function) to inject bearer token. Example provided in README.
-**.env setup:** PERPLEXITY_API_KEY (server-side only, never bundled), optional VITE_AGENT_PROXY_URL for prod proxy URL.
+**.env setup (app/):** `PERPLEXITY_API_KEY` (server-side only, never bundled), `VITE_APP_MODE`, `VITE_WC_PROJECT_ID`, `VITE_ALCHEMY_KEY`, `VITE_MOCK_USDC_ADDRESS`, `VITE_TREASURY_VAULT_ADDRESS`. See `.env.example`.
 
 ## Testing
 
@@ -126,15 +140,21 @@
 - **UI flow tests (4 critical paths):** sweep, rebalance, payout batch, month-end close — RTL + snapshots
 - **Manual checklist:** Overview → Policies → Approvals → Activity → Accounts → Reconciliation → Settings (verified before push)
 
-## Next Steps (v1.1)
+## Next Steps
 
-1. **Real backend + database** — Move from localStorage to persistent store (Postgres + Node API)
-2. **Coinbase for Business integration** — Real onchain execution and balance polling
-3. **Coinbase Offramp** — Real bank settlement and ACH/wire flows
-4. **Authentication & RBAC** — Real user identity, role enforcement, audit trail
-5. **Streaming UI** — Token-by-token rendering for AI responses
-6. **Compliance reporting** — SOX, AML, KYC hooks; audit report generation with Perplexity citations
-7. **Real-time alerts** — Websocket-based balance and policy monitoring
-8. **Multi-currency** — Support ETH, USDT, stablecoins beyond USDC
-9. **Rate feeds** — Real-time pricing and conversion rates
-10. **E2E tests** — Playwright suite for critical paths across browsers
+**Immediate (unblock testnet demo):**
+1. **Deploy contracts** — `forge script script/Deploy.s.sol --rpc-url base_sepolia --broadcast --verify`; paste addresses into Vercel testnet project env
+2. **Set up two Vercel projects** — `demo-treasuryflow.vercel.app` (mock) and `testnet-treasuryflow.vercel.app` (testnet), both pointing at `main`
+3. **Wire real destination addresses** — replace `0x000…dEaD` placeholder in `useTestnetExecution.ts` with actual onchain account addresses
+
+**v1.1:**
+4. **Real backend + database** — Move from localStorage to persistent store (Postgres + Node API)
+5. **Coinbase for Business integration** — Real onchain execution and balance polling
+6. **Coinbase Offramp** — Real bank settlement and ACH/wire flows
+7. **Authentication & RBAC** — Real user identity, role enforcement, audit trail
+8. **Streaming UI** — Token-by-token rendering for AI responses
+9. **Compliance reporting** — SOX, AML, KYC hooks; audit report generation with Perplexity citations
+10. **Real-time alerts** — Websocket-based balance and policy monitoring
+11. **Multi-currency** — Support ETH, USDT, stablecoins beyond USDC
+12. **Rate feeds** — Real-time pricing and conversion rates
+13. **E2E tests** — Playwright suite for critical paths across browsers
