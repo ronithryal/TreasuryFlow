@@ -91,6 +91,7 @@
 
 ✅ **Web3 & Contracts (Phase 0 + testnet engine)**
 - Base Sepolia contracts tested and verified (PolicyEngine, IntentRegistry, LedgerContract)
+- Security fixes applied (OpenZeppelin Ownable for state mutations, TreasuryVault deposited tracking)
 - MockUSDC: ERC20 faucet (6 decimals, public `mint()`), deployed via updated `Deploy.s.sol`
 - TreasuryVault: pulls USDC from caller, emits `PolicyExecuted(policyId, source, dest, amount, action, timestamp)` — the onchain audit event the UI reads back
 - WalletConnect via Web3Modal functional

@@ -552,7 +552,9 @@ GET    /api/contract-state/:account (direct contract call, not cached—proves o
 **What:** Never commit secrets, rotate keys
 
 **Checklist:**
-- [ ] Move all secrets to `.env` (gitignored)
+- [x] Move all secrets to `.env` (gitignored)
+- [x] Integrate `.gitleaks.toml` to auto-catch secret commits
+- [x] Add GitHub Actions for automated testing and auditing
 - [ ] Use `process.env` in code, never hardcode
 - [ ] JWT_SECRET generated on deploy (don't commit)
 - [ ] RPC_URL protected (use Alchemy/Infura API keys)
