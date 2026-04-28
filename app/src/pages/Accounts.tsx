@@ -36,7 +36,12 @@ export function Accounts() {
         <TabsContent value="cards">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {accounts.map((acc) => (
-              <div key={acc.id} className="cursor-pointer" onClick={() => setSelected(acc)}>
+              <div 
+                key={acc.id} 
+                id={acc.name.toLowerCase().includes("morpho") ? "accounts-morpho" : undefined}
+                className="cursor-pointer" 
+                onClick={() => setSelected(acc)}
+              >
                 <LiquidityHealthCard account={acc} />
               </div>
             ))}

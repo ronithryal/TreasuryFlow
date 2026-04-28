@@ -56,6 +56,10 @@ export interface RootState {
   now: string;
   users: User[];
   currentUserId: UserId;
+  // Walkthrough state
+  walkthroughActive: boolean;
+  activeScenario: string | null;
+  currentStep: number;
   entities: Entity[];
   accounts: Account[];
   counterparties: Counterparty[];
@@ -74,6 +78,10 @@ export interface RootState {
   setForceMockAi: (v: boolean) => void;
   setDarkMode: (v: boolean) => void;
   setDemoEntered: (v: boolean) => void;
+  startWalkthrough: (scenario: string) => void;
+  nextStep: () => void;
+  prevStep: () => void;
+  endWalkthrough: () => void;
 
   /** Run a policy against the current world. Adds intents + audit entries. */
   runPolicy: (policyId: PolicyId, opts?: { force?: boolean }) => Intent[];
@@ -202,6 +210,9 @@ export const useStore = create<RootState>()(
     (set, get) => ({
       schemaVersion: SCHEMA_VERSION,
       ...fromSeed(SEED),
+      walkthroughActive: false,
+      activeScenario: null,
+      currentStep: 0,
       ui: { forceMockAi: false, darkMode: false, demoEntered: false },
 
       resetToSeed: () => {
@@ -227,6 +238,10 @@ export const useStore = create<RootState>()(
         set((s) => ({ ui: { ...s.ui, darkMode: v } }));
       },
       setDemoEntered: (v) => set((s) => ({ ui: { ...s.ui, demoEntered: v } })),
+      startWalkthrough: (scenario) => set({ walkthroughActive: true, activeScenario: scenario, currentStep: 0 }),
+      nextStep: () => set((s) => ({ currentStep: s.currentStep + 1 })),
+      prevStep: () => set((s) => ({ currentStep: Math.max(0, s.currentStep - 1) })),
+      endWalkthrough: () => set({ walkthroughActive: false, activeScenario: null, currentStep: 0 }),
 
       runPolicy: (policyId, opts) => {
         const state = get();
@@ -526,14 +541,14 @@ export const useStore = create<RootState>()(
           case "morpho_yield": {
             const id = "i_morpho" + Date.now();
             set({ intents: [{
-              id: id as IntentId, policyId: null, amount: 80000, asset: "USDC", sourceAccountId: "acc_base_ops" as AccountId, destinationAccountId: "morpho_contract" as AccountId, type: "sweep", status: "pending_approval", riskFlags: [], rationale: "Yield deposit to Morpho", createdAt: state.now
+              id: id as IntentId, policyId: undefined, title: "Morpho Yield Deposit", description: "Deposit idle USDC to Morpho", chain: "base", entityId: "ent_us_llc" as EntityId, requestedBy: state.currentUserId, approvals: [], snapshotAt: state.now, sourceBalanceAtSnapshot: 180000, destinationBalanceAtSnapshot: 0, amount: 80000, asset: "USDC", sourceAccountId: "acc_base_ops" as AccountId, destinationAccountId: "morpho_contract" as AccountId, type: "sweep", status: "pending_approval", riskFlags: [], rationale: "Yield deposit to Morpho", createdAt: state.now
             }, ...state.intents] });
             break;
           }
           case "anomaly_warning": {
             const id = "i_anomaly" + Date.now();
             set({ intents: [{
-              id: id as IntentId, policyId: null, amount: 110000, asset: "USDC", sourceAccountId: "acc_base_ops" as AccountId, destinationAccountId: "new_vendor" as AccountId, type: "sweep", status: "pending_approval", riskFlags: [{ kind: "high_risk", note: "Large unusual transfer at odd time" }], rationale: "Unusual transfer", createdAt: state.now
+              id: id as IntentId, policyId: undefined, title: "High Value Transfer", description: "Payment to new vendor", chain: "base", entityId: "ent_us_llc" as EntityId, requestedBy: state.currentUserId, approvals: [], snapshotAt: state.now, sourceBalanceAtSnapshot: 150000, destinationBalanceAtSnapshot: 0, amount: 110000, asset: "USDC", sourceAccountId: "acc_base_ops" as AccountId, destinationAccountId: "new_vendor" as AccountId, type: "sweep", status: "pending_approval", riskFlags: [{ kind: "amount_above_normal_range", observed: 110000, max: 50000 }], rationale: "Unusual transfer", createdAt: state.now
             }, ...state.intents] });
             break;
           }

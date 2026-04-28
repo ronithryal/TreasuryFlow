@@ -101,22 +101,26 @@ export function Overview() {
       {/* KPI row */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard
+          id="kpi-total"
           label="Total managed"
           value={<Money amount={total} className="text-2xl" />}
           helper="across all wallets"
           icon={<Building2 className="h-4 w-4" />}
         />
         <KpiCard
+          id="kpi-reserve"
           label="Reserve balance"
           value={<Money amount={reserve} className="text-2xl" />}
           helper="Base + Ethereum + Custody"
         />
         <KpiCard
+          id="kpi-operating"
           label="Operating liquidity"
           value={<Money amount={operating} className="text-2xl" />}
           helper="all operating wallets"
         />
         <KpiCard
+          id="kpi-approvals"
           label="Pending approvals"
           value={<span className="text-2xl font-semibold">{pendingApprovals.length}</span>}
           helper="require action"
@@ -192,7 +196,7 @@ export function Overview() {
 
       {/* Policies firing today + exceptions */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card id="policies-section">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Policies active today</CardTitle>
           </CardHeader>

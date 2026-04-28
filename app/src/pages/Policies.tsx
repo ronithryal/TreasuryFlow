@@ -70,9 +70,14 @@ export function Policies() {
                     <TableHead />
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody id="policies-list">
                   {filtered.map((policy) => (
-                    <TableRow key={policy.id} className="cursor-pointer" onClick={() => setSelected(policy)}>
+                    <TableRow 
+                      key={policy.id} 
+                      id={`policies-${policy.type}`}
+                      className="cursor-pointer" 
+                      onClick={() => setSelected(policy)}
+                    >
                       <TableCell>
                         <p className="text-sm font-medium">{policy.name}</p>
                         <p className="text-xs text-muted-foreground">{policy.description.slice(0, 80)}</p>

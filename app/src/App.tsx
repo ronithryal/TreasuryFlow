@@ -12,6 +12,9 @@ import { Forecast } from "@/pages/Forecast";
 import { Audit } from "@/pages/Audit";
 import { Reconciliation } from "@/pages/Reconciliation";
 import { Settings } from "@/pages/Settings";
+import { Yield } from "@/pages/Yield";
+import { Entities } from "@/pages/Entities";
+import { DemoWalkthrough } from "@/components/demo/DemoWalkthrough";
 import { useStore } from "@/store";
 import { useEffect } from "react";
 
@@ -25,6 +28,8 @@ const PAGE_META: Record<string, { title: string; subtitle?: string }> = {
   "/forecast": { title: "Predictive Forecast", subtitle: "Balance projections and AI rebalancing" },
   "/audit": { title: "Audit Reports", subtitle: "Immutable onchain records and AI rationale" },
   "/reconciliation": { title: "Reconciliation", subtitle: "Ledger review and close-ready exports" },
+  "/yield": { title: "Yield Strategies", subtitle: "Non-custodial performance optimization" },
+  "/entities": { title: "Legal Entities", subtitle: "Multi-entity organizational structure" },
   "/settings": { title: "Settings", subtitle: "Roles, thresholds, and funding rails" },
 };
 
@@ -61,17 +66,22 @@ export function App() {
   }
 
   return (
-    <Switch>
-      <Route path="/">{() => <Shell path="/"><Overview /></Shell>}</Route>
-      <Route path="/policies">{() => <Shell path="/policies"><Policies /></Shell>}</Route>
-      <Route path="/approvals">{() => <Shell path="/approvals"><Approvals /></Shell>}</Route>
-      <Route path="/activity">{() => <Shell path="/activity"><Activity /></Shell>}</Route>
-      <Route path="/accounts">{() => <Shell path="/accounts"><Accounts /></Shell>}</Route>
-      <Route path="/risk">{() => <Shell path="/risk"><Risk /></Shell>}</Route>
-      <Route path="/forecast">{() => <Shell path="/forecast"><Forecast /></Shell>}</Route>
-      <Route path="/audit">{() => <Shell path="/audit"><Audit /></Shell>}</Route>
-      <Route path="/reconciliation">{() => <Shell path="/reconciliation"><Reconciliation /></Shell>}</Route>
-      <Route path="/settings">{() => <Shell path="/settings"><Settings /></Shell>}</Route>
-    </Switch>
+    <>
+      <Switch>
+        <Route path="/">{() => <Shell path="/"><Overview /></Shell>}</Route>
+        <Route path="/policies">{() => <Shell path="/policies"><Policies /></Shell>}</Route>
+        <Route path="/approvals">{() => <Shell path="/approvals"><Approvals /></Shell>}</Route>
+        <Route path="/activity">{() => <Shell path="/activity"><Activity /></Shell>}</Route>
+        <Route path="/accounts">{() => <Shell path="/accounts"><Accounts /></Shell>}</Route>
+        <Route path="/risk">{() => <Shell path="/risk"><Risk /></Shell>}</Route>
+        <Route path="/forecast">{() => <Shell path="/forecast"><Forecast /></Shell>}</Route>
+        <Route path="/audit">{() => <Shell path="/audit"><Audit /></Shell>}</Route>
+        <Route path="/reconciliation">{() => <Shell path="/reconciliation"><Reconciliation /></Shell>}</Route>
+        <Route path="/yield">{() => <Shell path="/yield"><Yield /></Shell>}</Route>
+        <Route path="/entities">{() => <Shell path="/entities"><Entities /></Shell>}</Route>
+        <Route path="/settings">{() => <Shell path="/settings"><Settings /></Shell>}</Route>
+      </Switch>
+      <DemoWalkthrough />
+    </>
   );
 }

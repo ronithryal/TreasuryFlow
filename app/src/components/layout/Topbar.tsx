@@ -28,8 +28,9 @@ export function Topbar({ title, subtitle }: { title: string; subtitle?: string }
       </div>
       <div className="flex items-center gap-3">
         {/* Web3Modal button */}
-        {/* @ts-expect-error custom element */}
-        <w3m-button />
+        <div id="wallet-status">
+          <w3m-button />
+        </div>
         {/* User switcher (maker-checker demo) */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

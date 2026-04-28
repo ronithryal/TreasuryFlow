@@ -86,7 +86,7 @@ export function Approvals() {
                 <TableHead />
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody id="approvals-queue">
               {filtered.map((intent) => (
                 <TableRow key={intent.id} className="cursor-pointer" onClick={() => setSelected(intent)}>
                   <TableCell>

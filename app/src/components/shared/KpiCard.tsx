@@ -9,6 +9,7 @@ interface KpiCardProps {
   className?: string;
   intent?: "default" | "warning" | "success" | "danger";
   icon?: React.ReactNode;
+  id?: string;
 }
 
 const intentRing: Record<NonNullable<KpiCardProps["intent"]>, string> = {
@@ -18,11 +19,11 @@ const intentRing: Record<NonNullable<KpiCardProps["intent"]>, string> = {
   danger: "ring-1 ring-destructive/20",
 };
 
-export function KpiCard({ label, value, helper, trend, className, intent = "default", icon }: KpiCardProps) {
+export function KpiCard({ id, label, value, helper, trend, className, intent = "default", icon }: KpiCardProps) {
   const trendColor =
     trend?.dir === "up" ? "text-chart-5" : trend?.dir === "down" ? "text-destructive" : "text-muted-foreground";
   return (
-    <Card className={cn("p-5", intentRing[intent], className)}>
+    <Card id={id} className={cn("p-5", intentRing[intent], className)}>
       <div className="flex items-start justify-between gap-2">
         <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
         {icon ? <div className="text-muted-foreground">{icon}</div> : null}

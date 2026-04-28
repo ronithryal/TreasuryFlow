@@ -17,66 +17,66 @@ interface WalkthroughStep {
 
 const WALKTHROUGH_CONTENT: Record<string, { title: string; steps: WalkthroughStep[] }> = {
   wallet_connect_sweep: {
-    title: "Onchain Identity & Sweeps",
+    title: "Institutional Identity",
     steps: [
-      { title: "Onchain Identity", content: "TreasuryFlow is non-custodial. It starts by connecting your institutional wallet to prove ownership of the treasury reserves.", icon: ShieldCheck, selector: "#wallet-status", route: "/" },
-      { title: "Policy Engine", content: "Our engine identified $80k in excess reserves. Rules are executed based on these immutable policies.", icon: Info, selector: "#policies-section", route: "/policies" },
-      { title: "Review Queue", content: "Every automated intent requires a final cryptographic signature. Review the rationale and sign to execute.", icon: Zap, selector: "#approvals-queue", route: "/approvals" },
-      { title: "Immutable Ledger", content: "Success. The transaction is now permanently recorded on Base Sepolia, citing the policy and AI rationale.", icon: CheckCircle2, selector: "#activity-feed", route: "/activity" },
+      { title: "Hybrid Onboarding", content: "TreasuryFlow supports a hybrid wallet stack. Connect your existing Safes via WalletConnect or instantly provision institutional wallets via CDP Embedded Wallets.", icon: ShieldCheck, selector: "#wallet-status", route: "/" },
+      { title: "Entity Provisioning", content: "Once a legal entity is verified, you can provision their operational wallet with one click—no private key management required for your subsidiaries.", icon: Building2, selector: "#entities-list", route: "/entities" },
+      { title: "Policy Execution", content: "Autonomous policies monitor your target bands. A sweep is proposed when reserves exceed the defined threshold.", icon: Zap, selector: "#policies-sweep", route: "/policies" },
+      { title: "Immutable Success", content: "The transfer is complete and permanently recorded on the Base Sepolia ledger with full cryptographic proof.", icon: CheckCircle2, selector: "#activity-feed", route: "/activity" },
     ]
   },
   morpho_yield: {
-    title: "Non-Custodial Yield",
+    title: "Yield Forensics",
     steps: [
-      { title: "Idle Capital", content: "We track your idle USDC across all networks. Idle capital is a missed opportunity for your treasury.", icon: Info, selector: "#kpi-operating", route: "/" },
-      { title: "Morpho Strategy", content: "TreasuryFlow proposes low-risk yield strategies using Morpho. You maintain 100% control of the mUSDC asset.", icon: ShieldCheck, selector: "#policies-yield", route: "/policies" },
-      { title: "Authorize Deployment", content: "Authorize the deployment. No third-party custodian is involved; you are lending directly to the protocol.", icon: Zap, selector: "#approvals-queue", route: "/approvals" },
-      { title: "Real-time Accrual", content: "Yield is now accruing. View your real-time performance and liquidity depth here.", icon: CheckCircle2, selector: "#accounts-morpho", route: "/accounts" },
+      { title: "Idle Capital Scan", content: "Our sensors identified $1.2M in idle USDC. In high-inflation environments, idle capital is a liability.", icon: Info, selector: "#kpi-operating", route: "/" },
+      { title: "Yield Marketplace", content: "Discover non-custodial yield strategies. Morpho Blue allows you to earn institutional yield while maintaining 100% control.", icon: TrendingUp, selector: "#yield-opportunities", route: "/yield" },
+      { title: "Policy Safeguard", content: "Automate your yield. This policy ensures only low-risk, verified protocols are used for reserve optimization.", icon: ShieldCheck, selector: "#policies-yield", route: "/policies" },
+      { title: "Direct Accrual", content: "Deployment verified. You are now earning 8.42% APY directly into your Base Morpho vault.", icon: CheckCircle2, selector: "#accounts-morpho", route: "/accounts" },
     ]
   },
   anomaly_warning: {
-    title: "Forensic AI Audit",
+    title: "AI Risk Engine",
     steps: [
-      { title: "Anomaly Detected", content: "A high-value transfer triggered our anomaly engine due to unusual timing and counterparty signals.", icon: Info, selector: "#kpi-approvals", route: "/" },
-      { title: "Perplexity Analysis", content: "Perplexity Agent AI has already scanned the transaction, citing specific risk vectors and chain history.", icon: ShieldCheck, selector: "#approvals-queue", route: "/approvals" },
-      { title: "Risk Forensics", content: "Inspect the automated evidence. We verify every signal so you don't have to trust blindly.", icon: Zap, selector: "#activity-feed", route: "/activity" },
-      { title: "Safe Resolution", content: "Risk mitigated. Your treasury operations are now protected by continuous, 24/7 AI auditing.", icon: CheckCircle2, selector: "#audit-section", route: "/audit" },
+      { title: "Forensic Alert", content: "A high-value transfer triggered an anomaly alert. The system has automatically paused the execution for review.", icon: AlertTriangle, selector: "#kpi-approvals", route: "/" },
+      { title: "Perplexity Analysis", content: "Perplexity AI has scanned the counterparty's onchain history, surfacing a 'Flash-Loan Association' risk vector.", icon: Search, selector: "#risk-section", route: "/risk" },
+      { title: "Review Rationale", content: "Inspect the evidence bundle. We provide the citations so your compliance team doesn't have to guess.", icon: Zap, selector: "#approvals-queue", route: "/approvals" },
+      { title: "Safe Resolution", content: "Anomaly rejected. Your treasury is protected by 24/7 autonomous risk auditing.", icon: CheckCircle2, selector: "#activity-feed", route: "/activity" },
     ]
   },
   counterparty_risk: {
-    title: "Trust-as-a-Service",
+    title: "Global Trust Radar",
     steps: [
-      { title: "New Counterparty", content: "A new vendor payment was initiated. We're running a deep forensic scan on the destination wallet.", icon: Info, selector: "#kpi-approvals", route: "/" },
-      { title: "Risk Profiling", content: "Perplexity is analyzing the vendor's reputation and historical behavior across the digital dollar economy.", icon: ShieldCheck, selector: "#risk-section", route: "/risk" },
-      { title: "Dynamic Limits", content: "Based on the risk score, we've adjusted the approval thresholds for this specific counterparty.", icon: Zap, selector: "#approvals-queue", route: "/approvals" },
-      { title: "Verified Vendor", content: "Vendor successfully onboarded with a verifiable trust profile recorded on your private ledger.", icon: CheckCircle2, selector: "#activity-feed", route: "/activity" },
+      { title: "New Counterparty", content: "A vendor from a new jurisdiction was added. We are running a deep forensic scan on their liquidity profile.", icon: Info, selector: "#kpi-approvals", route: "/" },
+      { title: "Identity Fingerprint", content: "Our Global Trust Radar verifies the counterparty against thousands of onchain and offchain data points.", icon: Fingerprint, selector: "#risk-section", route: "/risk" },
+      { title: "Dynamic Thresholds", content: "Risk score (98.4) passed. The system has adjusted the approval limit for this specific relationship.", icon: ShieldCheck, selector: "#approvals-queue", route: "/approvals" },
+      { title: "Verified Record", content: "Counterparty onboarded. Every future transaction with this vendor will be cited against this trust profile.", icon: CheckCircle2, selector: "#activity-feed", route: "/activity" },
     ]
   },
   market_shock: {
-    title: "Market Resilience",
+    title: "Operational Resilience",
     steps: [
-      { title: "Market Volatility", content: "Real-time sensors detected a >5% deviation in USDC liquidity depth across major venues.", icon: Info, selector: "#kpi-reserve", route: "/" },
-      { title: "Rebalance Suggestion", content: "Intelligence engine suggests rebalancing to maintain 100% liquidity health for upcoming payouts.", icon: ShieldCheck, selector: "#policies-rebalance", route: "/policies" },
-      { title: "Rapid Execution", content: "Execution happens in blocks, not days. Approve the rebalance to stabilize your reserves immediately.", icon: Zap, selector: "#approvals-queue", route: "/approvals" },
-      { title: "Resilience Proven", icon: CheckCircle2, content: "Market shock absorbed. Your treasury responded automatically while others were still reconciling.", selector: "#activity-feed", route: "/activity" },
+      { title: "Volatility Sensor", content: "Sensors detected a deviation in liquidity depth. Traditional treasuries react in days; we react in blocks.", icon: Info, selector: "#kpi-reserve", route: "/" },
+      { title: "Liquidity Forecast", content: "AI projects a potential shortfall if payouts continue at this velocity. View the 7-day visual projection here.", icon: BarChart3, selector: "#forecast-chart", route: "/forecast" },
+      { title: "Resilience Policy", content: "Executing a rapid rebalance to pull capital from cold storage and stabilize the operating floor.", icon: Zap, selector: "#policies-rebalance", route: "/policies" },
+      { title: "Shock Absorbed", icon: CheckCircle2, content: "Treasury stabilized. Your operations remained 100% liquid throughout the market shock.", selector: "#activity-feed", route: "/activity" },
     ]
   },
   predictive_forecast: {
-    title: "Intelligent Liquidity",
+    title: "Predictive Treasury",
     steps: [
-      { title: "Cash Flow Patterns", content: "AI is analyzing your recurring payroll and vendor patterns to project cash flow for the next 30 days.", icon: Info, selector: "#kpi-total", route: "/" },
-      { title: "Liquidity Forecast", content: "A potential gap is identified for next Friday. View the AI-generated projection here.", icon: ShieldCheck, selector: "#forecast-section", route: "/forecast" },
-      { title: "Proactive Rebalance", content: "Initiate a proactive rebalance now to avoid high-urgency transfers later this week.", icon: Zap, selector: "#approvals-queue", route: "/approvals" },
-      { title: "Operational Peace", icon: CheckCircle2, content: "Treasury is fully funded for the next 7 days. Operational risk has been systematically eliminated.", selector: "#activity-feed", route: "/activity" },
+      { title: "Pattern Recognition", content: "AI is analyzing your recurring vendor flows to optimize your long-term capital allocation.", icon: Info, selector: "#kpi-total", route: "/" },
+      { title: "Predictive Analytics", content: "We've projected your cash flow for the next month. A funding gap is identified for Friday the 14th.", icon: TrendingUp, selector: "#forecast-chart", route: "/forecast" },
+      { title: "Proactive Signal", content: "Based on the gap, the system has generated a proactive rebalance intent to fund operations now.", icon: Zap, selector: "#forecast-intelligence", route: "/forecast" },
+      { title: "Forward Ready", icon: CheckCircle2, content: "Treasury is now fully funded for the upcoming pay cycle. Operational risk eliminated.", selector: "#activity-feed", route: "/activity" },
     ]
   },
   audit_pdf: {
-    title: "Compliance Automation",
+    title: "Proof Onchain",
     steps: [
-      { title: "Immutable Records", content: "Every transaction, rationale, and citation is stored as a verifiable event on Base Sepolia.", icon: Info, selector: "#activity-feed", route: "/activity" },
-      { title: "On-Demand Reports", content: "Generate a forensic-grade PDF report for regulators, board members, or internal auditors in seconds.", icon: ShieldCheck, selector: "#reconciliation-section", route: "/reconciliation" },
-      { title: "AI-Generated Rationales", content: "The report includes citations for every decision, proving your adherence to treasury policy 24/7.", icon: Zap, selector: "#audit-section", route: "/audit" },
-      { title: "Audit Complete", icon: CheckCircle2, content: "The cost of trust has been collapsed. Your treasury is now self-auditing and fully transparent.", selector: "#activity-feed", route: "/activity" },
+      { title: "Unified Sequencing", content: "Every action—whether from a connected Safe or a provisioned CDP wallet—is sequenced into a cryptographic ledger that you truly own.", icon: Info, selector: "#activity-feed", route: "/activity" },
+      { title: "Evidence Bundles", content: "Generate regulatory-grade evidence bundles that contain every citation and block hash in one click.", icon: FileText, selector: "#audit-bundles", route: "/audit" },
+      { title: "Verification Rail", content: "Regulators can verify these proofs directly on Base Sepolia, collapsing the cost of traditional audits.", icon: ShieldCheck, selector: "#reconciliation-section", route: "/reconciliation" },
+      { title: "Self-Auditing", icon: CheckCircle2, content: "The promise of 'trust' is replaced by the reality of 'proof'. Your audit is now 24/7.", selector: "#audit-section", route: "/audit" },
     ]
   }
 };
