@@ -112,7 +112,7 @@
 
 | Item | Impact | Mitigation |
 |------|--------|-----------|
-| Contracts not yet deployed | Testnet demo needs `VITE_MOCK_USDC_ADDRESS` + `VITE_TREASURY_VAULT_ADDRESS` set | Run `forge script script/Deploy.s.sol --rpc-url base_sepolia --broadcast` |
+| Contracts not source-verified on Basescan | Source code not readable on Basescan UI | Run `forge script script/Deploy.s.sol --rpc-url base_sepolia --verify --etherscan-api-key <KEY>` |
 | Mainnet execution pending | Currently Base Sepolia testnet only | Coinbase for Business integration in Phase 3 |
 | TreasuryVault destination is placeholder | `executePolicy` logs `0x000…dEaD` as destination | Replace with real account address resolver when connecting to actual onchain accounts |
 | No real bank settlement | Cash-out simulated only | Coinbase Offramp integration (in progress, scaffolded) |
@@ -123,15 +123,26 @@
 | No production proxy | Vite dev proxy only | Prod proxy is 30-line serverless function, documented in README |
 | Mock AI cost-guarded | Rate limit 1 in-flight per surface | Prevents runaway API calls during demo; caches by input hash |
 
+## Deployed Contracts — Base Sepolia (Chain ID 84532)
+
+| Contract | Address |
+|----------|---------|
+| MockUSDC | `0x576aAA911eC1caAd7F234F21b3607a98C9F669F2` |
+| TreasuryVault | `0xaCB7F3Da6cF6cC7Fe35e74B35477A3065172151A` |
+| PolicyEngine | `0x01E0149639EB224CCc0557d3bd33b0FB05505a64` |
+| IntentRegistry | `0xf510c47823139B6819e4090d4583B518c66ee0d7` |
+| LedgerContract | `0x20cF3fB0A14FEce0889f69e1243a9d9f78AC508b` |
+
 ## Deployment Notes
 
 **Dev (mock):** `npm run dev` opens http://localhost:5173 with HMR — no wallet or contract addresses needed
-**Dev (testnet):** set `VITE_APP_MODE=testnet` + contract addresses in `.env`, then `npm run dev`
+**Dev (testnet):** set `VITE_APP_MODE=testnet` + contract addresses in `.env.local`, then `npm run dev`
 **Prod build:** `npm run build` → dist/, then `npm run preview` locally or deploy dist/ to any static host
 **Two Vercel projects, one branch:**
 - `demo-treasuryflow.vercel.app` → `VITE_APP_MODE=mock` (no Web3 env vars needed)
 - `testnet-treasuryflow.vercel.app` → `VITE_APP_MODE=testnet` + all Web3 env vars
-**Contract deployment:** `forge script script/Deploy.s.sol --rpc-url base_sepolia --broadcast --verify` — requires `PRIVATE_KEY` + `BASE_SEPOLIA_RPC_URL` in contracts/.env
+**Contract deployment:** `forge script script/Deploy.s.sol --rpc-url base_sepolia --broadcast` — requires `PRIVATE_KEY` + `BASE_SEPOLIA_RPC_URL` in contracts/.env
+**Contract verification:** `forge script script/Deploy.s.sol --rpc-url base_sepolia --verify --etherscan-api-key <BASESCAN_KEY>` — makes source code readable on Basescan
 **Production Perplexity API:** Requires serverless proxy (e.g., Vercel function) to inject bearer token. Example provided in README.
 **.env setup (app/):** `PERPLEXITY_API_KEY` (server-side only, never bundled), `VITE_APP_MODE`, `VITE_WC_PROJECT_ID`, `VITE_ALCHEMY_KEY`, `VITE_MOCK_USDC_ADDRESS`, `VITE_TREASURY_VAULT_ADDRESS`. See `.env.example`.
 
@@ -139,14 +150,16 @@
 
 - **Domain tests (28 passing):** Vitest, 100% branch coverage on policy-engine, approvals, execution, ledger, reconciliation
 - **UI flow tests (4 critical paths):** sweep, rebalance, payout batch, month-end close — RTL + snapshots
+- **Contract tests (89 passing):** Forge/Foundry — MockUSDC (18), TreasuryVault (18), PolicyEngine (20), LedgerContract (9), IntentRegistry (24); covers all revert paths, access control, event emissions, and security fixes
 - **Manual checklist:** Overview → Policies → Approvals → Activity → Accounts → Reconciliation → Settings (verified before push)
 
 ## Next Steps
 
-**Immediate (unblock testnet demo):**
-1. **Deploy contracts** — `forge script script/Deploy.s.sol --rpc-url base_sepolia --broadcast --verify`; paste addresses into Vercel testnet project env
-2. **Set up two Vercel projects** — `demo-treasuryflow.vercel.app` (mock) and `testnet-treasuryflow.vercel.app` (testnet), both pointing at `main`
-3. **Wire real destination addresses** — replace `0x000…dEaD` placeholder in `useTestnetExecution.ts` with actual onchain account addresses
+**Immediate:**
+1. ✅ **Contracts deployed** — Base Sepolia, addresses documented above
+2. ✅ **Two Vercel projects live** — `demo-treasuryflow.vercel.app` (mock) and `testnet-treasuryflow.vercel.app` (testnet)
+3. **Verify contracts on Basescan** — `forge script script/Deploy.s.sol --rpc-url base_sepolia --verify --etherscan-api-key <KEY>` so judges can read source code
+4. **Wire real destination addresses** — replace `0x000…dEaD` placeholder in `useTestnetExecution.ts` with actual onchain account addresses
 
 **v1.1:**
 4. **Real backend + database** — Move from localStorage to persistent store (Postgres + Node API)

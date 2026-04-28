@@ -63,6 +63,16 @@ This architecture ensures 100% UI parity while providing either a frictionless d
 *   **Cryptographic Audit Trail**: Every policy execution emits a `PolicyExecuted` event, readable on Basescan.
 *   **WalletConnect Integration**: Support for MetaMask, Coinbase Wallet, Rainbow, and any WC-compatible wallet.
 
+#### Deployed Contracts — Base Sepolia (Chain ID 84532)
+
+| Contract | Address |
+|----------|---------|
+| MockUSDC | [`0x576aAA911eC1caAd7F234F21b3607a98C9F669F2`](https://sepolia.basescan.org/address/0x576aAA911eC1caAd7F234F21b3607a98C9F669F2) |
+| TreasuryVault | [`0xaCB7F3Da6cF6cC7Fe35e74B35477A3065172151A`](https://sepolia.basescan.org/address/0xaCB7F3Da6cF6cC7Fe35e74B35477A3065172151A) |
+| PolicyEngine | [`0x01E0149639EB224CCc0557d3bd33b0FB05505a64`](https://sepolia.basescan.org/address/0x01E0149639EB224CCc0557d3bd33b0FB05505a64) |
+| IntentRegistry | [`0xf510c47823139B6819e4090d4583B518c66ee0d7`](https://sepolia.basescan.org/address/0xf510c47823139B6819e4090d4583B518c66ee0d7) |
+| LedgerContract | [`0x20cF3fB0A14FEce0889f69e1243a9d9f78AC508b`](https://sepolia.basescan.org/address/0x20cF3fB0A14FEce0889f69e1243a9d9f78AC508b) |
+
 ---
 
 ## 🛠️ Tech Stack
