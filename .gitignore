@@ -35,3 +35,7 @@ lerna-debug.log*
 
 # OS
 Thumbs.db
+
+# gstack — security reports and session state (never commit)
+.gstack/
+contracts/broadcast/

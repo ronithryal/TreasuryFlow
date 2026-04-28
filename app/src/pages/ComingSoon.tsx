@@ -8,8 +8,7 @@ import {
   Building2, 
   ArrowUpRight,
   ShieldAlert,
-  LineChart,
-  Code2
+  LineChart
 } from "lucide-react";
 
 export function ComingSoon() {

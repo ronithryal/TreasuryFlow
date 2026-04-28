@@ -1,0 +1,4 @@
+title = "gitleaks config"
+
+# We can rely on the default gitleaks rules for a generic project.
+# This file is just to signal the presence of a config if needed.

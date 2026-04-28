@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-contract PolicyEngine {
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract PolicyEngine is Ownable {
+    constructor() Ownable(msg.sender) {}
     struct Policy {
         uint256 id;
         string name;
@@ -45,7 +48,7 @@ contract PolicyEngine {
         address source,
         address destination,
         string calldata conditions
-    ) external returns (uint256 policyId) {
+    ) external onlyOwner returns (uint256 policyId) {
         policyId = nextPolicyId++;
         policies[policyId] = Policy({
             id: policyId,
@@ -70,7 +73,7 @@ contract PolicyEngine {
         address destination,
         string calldata conditions,
         bool active
-    ) external {
+    ) external onlyOwner {
         Policy storage policy = policies[policyId];
         require(policy.id != 0, "Policy not found");
 
@@ -85,7 +88,7 @@ contract PolicyEngine {
         emit PolicyUpdated(policyId, name, policyType, source, destination, conditions, policy.version);
     }
 
-    function setPolicyActive(uint256 policyId, bool active) external {
+    function setPolicyActive(uint256 policyId, bool active) external onlyOwner {
         Policy storage policy = policies[policyId];
         require(policy.id != 0, "Policy not found");
         policy.active = active;

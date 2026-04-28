@@ -13,6 +13,7 @@ interface IERC20Minimal {
 /// trail the UI reads back via Alchemy.
 contract TreasuryVault {
     address public immutable token;
+    mapping(address => uint256) public deposited;
 
     /// `policyId` is a string so the testnet demo can pass the same
     /// `pol_xxx` ids the Zustand store uses, no mapping table needed.
@@ -50,6 +51,7 @@ contract TreasuryVault {
         require(ok, "Transfer failed");
 
         emit PolicyExecuted(policyId, msg.sender, destination, amount, action, block.timestamp);
+        deposited[msg.sender] += amount;
         emit Deposit(msg.sender, amount);
     }
 
@@ -58,6 +60,8 @@ contract TreasuryVault {
     /// vault — production would gate this behind a Safe.
     function withdraw(uint256 amount) external {
         require(amount > 0, "Invalid amount");
+        require(deposited[msg.sender] >= amount, "Insufficient balance");
+        deposited[msg.sender] -= amount;
         bool ok = IERC20Minimal(token).transfer(msg.sender, amount);
         require(ok, "Transfer failed");
         emit Withdraw(msg.sender, amount);

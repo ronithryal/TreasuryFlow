@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-contract LedgerContract {
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract LedgerContract is Ownable {
+    constructor() Ownable(msg.sender) {}
     event LedgerEntryRecorded(
         address indexed from,
         address indexed to,
@@ -19,7 +22,7 @@ contract LedgerContract {
         string calldata asset,
         bytes32 txHash,
         uint256 blockNumber
-    ) external {
+    ) external onlyOwner {
         require(from != address(0), "Invalid from");
         require(to != address(0), "Invalid to");
         require(amount > 0, "Invalid amount");

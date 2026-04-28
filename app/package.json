@@ -25,7 +25,7 @@
     "@safe-global/api-kit": "^4.1.0",
     "@safe-global/protocol-kit": "^7.1.0",
     "@tanstack/react-query": "^5.100.5",
-    "@web3modal/wagmi": "5.1.11",
+    "@web3modal/wagmi": "^5.0.11",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
@@ -37,7 +37,7 @@
     "react-dom": "^18.3.1",
     "tailwind-merge": "^2.5.4",
     "viem": "^2.21.54",
-    "wagmi": "^2.14.1",
+    "wagmi": "^3.6.5",
     "wouter": "^3.3.5",
     "zod": "^3.23.8",
     "zustand": "^4.5.5"
@@ -56,7 +56,7 @@
     "tailwindcss": "^3.4.14",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.6.3",
-    "vite": "^5.4.10",
-    "vitest": "^2.1.4"
+    "vite": "^8.0.10",
+    "vitest": "^4.1.5"
   }
 }

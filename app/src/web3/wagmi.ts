@@ -10,7 +10,7 @@ export const wagmiConfig = createConfig({
   connectors: [
     coinbaseWallet({ 
       appName: 'TreasuryFlow',
-      preference: 'all' // This enables Embedded Wallets support
+      preference: { options: 'all' } as any // This enables Embedded Wallets support
     }),
     walletConnect({ projectId }),
   ],
