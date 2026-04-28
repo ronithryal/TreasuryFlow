@@ -67,7 +67,7 @@ export function Activity() {
                 <TableHead>Date</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody id="activity-feed">
+            <TableBody id="activity-feed" data-tour="activity-feed">
               {filtered.map((intent) => (
                 <TableRow key={intent.id} className="cursor-pointer" onClick={() => setSelected(intent)}>
                   <TableCell>

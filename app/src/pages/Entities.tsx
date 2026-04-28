@@ -18,7 +18,7 @@ export function Entities() {
         </Button>
       </div>
 
-      <div id="entities-list" className="grid gap-4">
+      <div id="entities-list" data-tour="entities-list" className="grid gap-4">
         {entities.map(entity => {
           const entityAccounts = accounts.filter(a => a.entityId === entity.id);
           const entityBalance = entityAccounts.reduce((sum, a) => sum + a.balance, 0);

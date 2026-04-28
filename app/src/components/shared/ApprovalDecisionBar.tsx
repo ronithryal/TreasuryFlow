@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Check, X, MessageSquareWarning } from "lucide-react";
+import { useWriteContract } from "wagmi";
 
 interface Props {
   canDecide: boolean;
@@ -12,8 +13,9 @@ interface Props {
 
 export function ApprovalDecisionBar({ canDecide, reasonDisabled, onDecision }: Props) {
   const [comment, setComment] = useState("");
+  const { writeContractAsync, isPending } = useWriteContract();
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-tour="approvals-decision-bar">
       <Textarea
         placeholder="Optional comment (visible to other approvers and on the audit trail)"
         value={comment}
@@ -52,11 +54,48 @@ export function ApprovalDecisionBar({ canDecide, reasonDisabled, onDecision }: P
             </Button>
             <Button
               size="sm"
-              disabled={!canDecide}
-              onClick={() => onDecision({ decision: "approve", comment: comment || undefined })}
+              disabled={!canDecide || isPending}
+              onClick={async () => {
+                // In a real environment, this would build a Safe transaction
+                // using @safe-global/protocol-kit and @safe-global/api-kit,
+                // propose it to the Safe transaction service, and then ask
+                // the user to sign it via Wagmi useSignMessage/useWriteContract.
+                // 
+                // Example Safe integration:
+                // const safeProtocolKit = await Safe.init({ provider: ..., safeAddress: ... })
+                // const safeTransaction = await safeProtocolKit.createTransaction({ transactions: [...] })
+                // const signedSafeTx = await safeProtocolKit.signTransaction(safeTransaction)
+                // await apiKit.proposeTransaction({ safeAddress, safeTransactionData: signedSafeTx.data, ... })
+                
+                try {
+                  // Simulate an onchain interaction with Wagmi
+                  if (writeContractAsync) {
+                    await writeContractAsync({
+                      abi: [{
+                        type: 'function',
+                        name: 'approve',
+                        inputs: [
+                          { name: 'spender', type: 'address' },
+                          { name: 'amount', type: 'uint256' }
+                        ],
+                        outputs: [{ type: 'bool' }],
+                        stateMutability: 'nonpayable'
+                      }],
+                      address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', // USDC on Base Sepolia
+                      functionName: 'approve',
+                      args: ['0x1111111111111111111111111111111111111111', BigInt(1000000)], // Mock spender
+                    });
+                  }
+                  
+                  // Once the transaction succeeds or is mocked, resolve the intent
+                  onDecision({ decision: "approve", comment: comment || undefined });
+                } catch (error) {
+                  console.error("Transaction failed:", error);
+                }
+              }}
             >
               <Check className="h-4 w-4" />
-              Approve
+              {isPending ? "Confirm in Wallet..." : "Approve Onchain"}
             </Button>
           </div>
         </div>

@@ -29,7 +29,7 @@ export function Audit() {
   ];
 
   return (
-    <div id="audit-section" className="space-y-6">
+    <div id="audit-section" data-tour="audit-section" className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
           <CardHeader className="pb-3">
@@ -49,7 +49,7 @@ export function Audit() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card data-tour="audit-compliance">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2 text-chart-5 mb-2">
               <ShieldCheck className="h-4 w-4" />
@@ -76,11 +76,11 @@ export function Audit() {
         </Card>
       </div>
 
-      <div id="audit-bundles" className="space-y-3">
+      <div id="audit-bundles" data-tour="audit-bundles" className="space-y-3">
         <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Recent Evidence Bundles</h2>
         <div className="space-y-2">
           {BUNDLES.map(b => (
-            <div key={b.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-card hover:bg-muted/20 transition-all cursor-pointer group">
+            <div key={b.id} data-tour={b.id === 'EB-2024-04-27-01' ? 'audit-bundle-row' : undefined} className="flex items-center justify-between p-4 rounded-xl border border-border bg-card hover:bg-muted/20 transition-all cursor-pointer group">
               <div className="flex items-center gap-4">
                 <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
                   <FileText className="h-5 w-5" />

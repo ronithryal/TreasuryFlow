@@ -29,6 +29,7 @@ const SCENARIOS = [
   { kind: "market_shock" as const, label: "5) Market Shock", desc: "Price alert -> rebalance" },
   { kind: "predictive_forecast" as const, label: "6) Predictive Forecast", desc: "Balance forecast 1-7 days" },
   { kind: "audit_pdf" as const, label: "7) Audit PDF", desc: "Generate report with proofs" },
+  { kind: "create_policy" as const, label: "8) Create Policy", desc: "Agentic policy builder" },
 ] as const;
 
 export function Overview() {
@@ -57,23 +58,27 @@ export function Overview() {
 
   async function runScenario(kind: typeof SCENARIOS[number]["kind"]) {
     setRunning(kind);
-    triggerScenario(kind);
-    startWalkthrough(kind);
 
     // Route to relevant page based on scenario
     const routeMap: Record<typeof SCENARIOS[number]["kind"], string> = {
-      wallet_connect_sweep: "/activity",
-      morpho_yield: "/activity",
+      wallet_connect_sweep: "/approvals",
+      morpho_yield: "/yield",
       anomaly_warning: "/approvals",
-      counterparty_risk: "/approvals",
-      market_shock: "/activity",
-      predictive_forecast: "/accounts",
-      audit_pdf: "/reconciliation",
+      counterparty_risk: "/risk",
+      market_shock: "/forecast",
+      predictive_forecast: "/forecast",
+      audit_pdf: "/audit",
+      create_policy: "/policies",
     };
 
-    await new Promise((r) => setTimeout(r, 600));
-    setRunning(null);
     navigate(routeMap[kind]);
+    
+    // Wait for navigation and layout
+    await new Promise((r) => setTimeout(r, 300));
+    
+    triggerScenario(kind);
+    startWalkthrough(kind);
+    setRunning(null);
   }
 
   return (
@@ -102,6 +107,7 @@ export function Overview() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard
           id="kpi-total"
+          data-tour="kpi-total"
           label="Total managed"
           value={<Money amount={total} className="text-2xl" />}
           helper="across all wallets"
@@ -109,18 +115,21 @@ export function Overview() {
         />
         <KpiCard
           id="kpi-reserve"
+          data-tour="kpi-reserve"
           label="Reserve balance"
           value={<Money amount={reserve} className="text-2xl" />}
           helper="Base + Ethereum + Custody"
         />
         <KpiCard
           id="kpi-operating"
+          data-tour="kpi-operating"
           label="Operating liquidity"
           value={<Money amount={operating} className="text-2xl" />}
           helper="all operating wallets"
         />
         <KpiCard
           id="kpi-approvals"
+          data-tour="kpi-approvals"
           label="Pending approvals"
           value={<span className="text-2xl font-semibold">{pendingApprovals.length}</span>}
           helper="require action"
@@ -196,7 +205,7 @@ export function Overview() {
 
       {/* Policies firing today + exceptions */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card id="policies-section">
+        <Card id="policies-section" data-tour="policies-section">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Policies active today</CardTitle>
           </CardHeader>

@@ -84,7 +84,7 @@ export function Yield() {
       </div>
 
       {/* Opportunities */}
-      <div id="yield-opportunities" className="space-y-3">
+      <div id="yield-opportunities" data-tour="yield-opportunities" className="space-y-3">
         <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Non-Custodial Opportunities</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {OPPORTUNITIES.map(op => (

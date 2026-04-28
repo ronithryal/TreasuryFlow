@@ -39,6 +39,7 @@ export function Accounts() {
               <div 
                 key={acc.id} 
                 id={acc.name.toLowerCase().includes("morpho") ? "accounts-morpho" : undefined}
+                data-tour={acc.name.toLowerCase().includes("morpho") ? "accounts-morpho" : undefined}
                 className="cursor-pointer" 
                 onClick={() => setSelected(acc)}
               >

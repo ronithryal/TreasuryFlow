@@ -28,7 +28,7 @@ export function Topbar({ title, subtitle }: { title: string; subtitle?: string }
       </div>
       <div className="flex items-center gap-3">
         {/* Web3Modal button */}
-        <div id="wallet-status">
+        <div id="wallet-status" data-tour="wallet-status">
           <w3m-button />
         </div>
         {/* User switcher (maker-checker demo) */}

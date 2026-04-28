@@ -1,8 +1,9 @@
 import { useState, useLayoutEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, ChevronRight, ChevronLeft, ShieldCheck, Info, Zap, CheckCircle2, Building2, TrendingUp, AlertTriangle, Search, Fingerprint, BarChart3, FileText } from "lucide-react";
+import { X, ChevronRight, ChevronLeft, ShieldCheck, Info, Zap, CheckCircle2, TrendingUp, AlertTriangle, Fingerprint, BarChart3, FileText } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
@@ -17,66 +18,63 @@ interface WalkthroughStep {
 
 const WALKTHROUGH_CONTENT: Record<string, { title: string; steps: WalkthroughStep[] }> = {
   wallet_connect_sweep: {
-    title: "Institutional Identity",
+    title: "Wallet + Sweep",
     steps: [
-      { title: "Hybrid Onboarding", content: "TreasuryFlow supports a hybrid wallet stack. Connect your existing Safes via WalletConnect or instantly provision institutional wallets via CDP Embedded Wallets.", icon: ShieldCheck, selector: "#wallet-status", route: "/" },
-      { title: "Entity Provisioning", content: "Once a legal entity is verified, you can provision their operational wallet with one click—no private key management required for your subsidiaries.", icon: Building2, selector: "#entities-list", route: "/entities" },
-      { title: "Policy Execution", content: "Autonomous policies monitor your target bands. A sweep is proposed when reserves exceed the defined threshold.", icon: Zap, selector: "#policies-sweep", route: "/policies" },
-      { title: "Immutable Success", content: "The transfer is complete and permanently recorded on the Base Sepolia ledger with full cryptographic proof.", icon: CheckCircle2, selector: "#activity-feed", route: "/activity" },
+      { title: "Active Policies", content: "TreasuryFlow autonomous policies monitor your target bands. A sweep policy is currently active to move excess funds.", icon: Zap, selector: '[data-tour="policies-section"]', route: "/" },
+      { title: "Approval Required", content: "The sweep was proposed because reserves exceeded the threshold. Review the pending transfer.", icon: ShieldCheck, selector: '[data-tour="approvals-sweep-row"]', route: "/approvals" }
     ]
   },
   morpho_yield: {
-    title: "Yield Forensics",
+    title: "Morpho Yield",
     steps: [
-      { title: "Idle Capital Scan", content: "Our sensors identified $1.2M in idle USDC. In high-inflation environments, idle capital is a liability.", icon: Info, selector: "#kpi-operating", route: "/" },
-      { title: "Yield Marketplace", content: "Discover non-custodial yield strategies. Morpho Blue allows you to earn institutional yield while maintaining 100% control.", icon: TrendingUp, selector: "#yield-opportunities", route: "/yield" },
-      { title: "Policy Safeguard", content: "Automate your yield. This policy ensures only low-risk, verified protocols are used for reserve optimization.", icon: ShieldCheck, selector: "#policies-yield", route: "/policies" },
-      { title: "Direct Accrual", content: "Deployment verified. You are now earning 8.42% APY directly into your Base Morpho vault.", icon: CheckCircle2, selector: "#accounts-morpho", route: "/accounts" },
+      { title: "Yield Opportunities", content: "Discover non-custodial yield strategies. Morpho Blue allows you to earn institutional yield while maintaining 100% control.", icon: TrendingUp, selector: '[data-tour="yield-opportunities"]', route: "/yield" },
+      { title: "Direct Accrual", content: "Deposit proposed. You will start earning 8.42% APY directly into your Base Morpho vault once approved.", icon: CheckCircle2, selector: '[data-tour="approvals-morpho-row"]', route: "/approvals" }
     ]
   },
   anomaly_warning: {
-    title: "AI Risk Engine",
+    title: "Anomaly Warning",
     steps: [
-      { title: "Forensic Alert", content: "A high-value transfer triggered an anomaly alert. The system has automatically paused the execution for review.", icon: AlertTriangle, selector: "#kpi-approvals", route: "/" },
-      { title: "Perplexity Analysis", content: "Perplexity AI has scanned the counterparty's onchain history, surfacing a 'Flash-Loan Association' risk vector.", icon: Search, selector: "#risk-section", route: "/risk" },
-      { title: "Review Rationale", content: "Inspect the evidence bundle. We provide the citations so your compliance team doesn't have to guess.", icon: Zap, selector: "#approvals-queue", route: "/approvals" },
-      { title: "Safe Resolution", content: "Anomaly rejected. Your treasury is protected by 24/7 autonomous risk auditing.", icon: CheckCircle2, selector: "#activity-feed", route: "/activity" },
+      { title: "Forensic Alert", content: "A high-value transfer triggered an anomaly alert. The system has automatically paused the execution for review. Click the highlighted row.", icon: AlertTriangle, selector: '[data-tour="approvals-anomaly-row"]', route: "/approvals" },
+      { title: "Review Rationale", content: "Inspect the evidence bundle. Perplexity AI has scanned the counterparty's onchain history, surfacing a 'Flash-Loan Association' risk vector.", icon: Zap, selector: '[data-tour="approvals-decision-bar"]', route: "/approvals" },
     ]
   },
   counterparty_risk: {
-    title: "Global Trust Radar",
+    title: "Counterparty Risk",
     steps: [
-      { title: "New Counterparty", content: "A vendor from a new jurisdiction was added. We are running a deep forensic scan on their liquidity profile.", icon: Info, selector: "#kpi-approvals", route: "/" },
-      { title: "Identity Fingerprint", content: "Our Global Trust Radar verifies the counterparty against thousands of onchain and offchain data points.", icon: Fingerprint, selector: "#risk-section", route: "/risk" },
-      { title: "Dynamic Thresholds", content: "Risk score (98.4) passed. The system has adjusted the approval limit for this specific relationship.", icon: ShieldCheck, selector: "#approvals-queue", route: "/approvals" },
-      { title: "Verified Record", content: "Counterparty onboarded. Every future transaction with this vendor will be cited against this trust profile.", icon: CheckCircle2, selector: "#activity-feed", route: "/activity" },
+      { title: "New Counterparty", content: "A vendor from a new jurisdiction was added. We are running a deep forensic scan on their liquidity profile.", icon: Info, selector: '[data-tour="risk-new-counterparty"]', route: "/risk" },
+      { title: "Identity Fingerprint", content: "Our Global Trust Radar verified the counterparty, but flagged it as a first-time vendor. Risk limits are dynamically adjusted.", icon: Fingerprint, selector: '[data-tour="risk-new-rationale"]', route: "/risk" },
     ]
   },
   market_shock: {
-    title: "Operational Resilience",
+    title: "Market Shock",
     steps: [
-      { title: "Volatility Sensor", content: "Sensors detected a deviation in liquidity depth. Traditional treasuries react in days; we react in blocks.", icon: Info, selector: "#kpi-reserve", route: "/" },
-      { title: "Liquidity Forecast", content: "AI projects a potential shortfall if payouts continue at this velocity. View the 7-day visual projection here.", icon: BarChart3, selector: "#forecast-chart", route: "/forecast" },
-      { title: "Resilience Policy", content: "Executing a rapid rebalance to pull capital from cold storage and stabilize the operating floor.", icon: Zap, selector: "#policies-rebalance", route: "/policies" },
-      { title: "Shock Absorbed", icon: CheckCircle2, content: "Treasury stabilized. Your operations remained 100% liquid throughout the market shock.", selector: "#activity-feed", route: "/activity" },
+      { title: "Liquidity Forecast", content: "AI projects a potential shortfall if payouts continue at this velocity. View the 7-day visual projection here.", icon: BarChart3, selector: '[data-tour="forecast-chart"]', route: "/forecast" },
+      { title: "Volatility Sensor", content: "Sensors detected a deviation in liquidity depth. A gap is identified, and a rebalance is recommended.", icon: Info, selector: '[data-tour="forecast-intelligence"]', route: "/forecast" },
+      { title: "Resilience Policy", content: "Executing a rapid rebalance to pull capital from cold storage and stabilize the operating floor.", icon: Zap, selector: '[data-tour="policies-rebalance"]', route: "/policies" },
     ]
   },
   predictive_forecast: {
-    title: "Predictive Treasury",
+    title: "Predictive Forecast",
     steps: [
-      { title: "Pattern Recognition", content: "AI is analyzing your recurring vendor flows to optimize your long-term capital allocation.", icon: Info, selector: "#kpi-total", route: "/" },
-      { title: "Predictive Analytics", content: "We've projected your cash flow for the next month. A funding gap is identified for Friday the 14th.", icon: TrendingUp, selector: "#forecast-chart", route: "/forecast" },
-      { title: "Proactive Signal", content: "Based on the gap, the system has generated a proactive rebalance intent to fund operations now.", icon: Zap, selector: "#forecast-intelligence", route: "/forecast" },
-      { title: "Forward Ready", icon: CheckCircle2, content: "Treasury is now fully funded for the upcoming pay cycle. Operational risk eliminated.", selector: "#activity-feed", route: "/activity" },
+      { title: "Predictive Analytics", content: "We've projected your cash flow for the next month. A funding gap is identified for Friday the 14th.", icon: TrendingUp, selector: '[data-tour="forecast-chart"]', route: "/forecast" },
+      { title: "Proactive Signal", content: "Based on the gap, the system has generated a proactive rebalance intent to fund operations now.", icon: Zap, selector: '[data-tour="forecast-recommendation"]', route: "/forecast" },
     ]
   },
   audit_pdf: {
-    title: "Proof Onchain",
+    title: "Audit PDF",
     steps: [
-      { title: "Unified Sequencing", content: "Every action—whether from a connected Safe or a provisioned CDP wallet—is sequenced into a cryptographic ledger that you truly own.", icon: Info, selector: "#activity-feed", route: "/activity" },
-      { title: "Evidence Bundles", content: "Generate regulatory-grade evidence bundles that contain every citation and block hash in one click.", icon: FileText, selector: "#audit-bundles", route: "/audit" },
-      { title: "Verification Rail", content: "Regulators can verify these proofs directly on Base Sepolia, collapsing the cost of traditional audits.", icon: ShieldCheck, selector: "#reconciliation-section", route: "/reconciliation" },
-      { title: "Self-Auditing", icon: CheckCircle2, content: "The promise of 'trust' is replaced by the reality of 'proof'. Your audit is now 24/7.", selector: "#audit-section", route: "/audit" },
+      { title: "Evidence Bundles", content: "Generate regulatory-grade evidence bundles that contain every citation and block hash in one click.", icon: FileText, selector: '[data-tour="audit-section"]', route: "/audit" },
+      { title: "Unified Sequencing", content: "Every action is sequenced into a cryptographic ledger that you truly own.", icon: Info, selector: '[data-tour="audit-bundle-row"]', route: "/audit" },
+      { title: "Self-Auditing", content: "The promise of 'trust' is replaced by the reality of 'proof'. Your audit is now 24/7.", icon: CheckCircle2, selector: '[data-tour="audit-compliance"]', route: "/audit" },
+    ]
+  },
+  create_policy: {
+    title: "Create New Policy",
+    steps: [
+      { title: "AI Policy Builder", content: "Our autonomous agents translate plain English into deterministic smart-contract logic.", icon: Zap, selector: '[data-tour="btn-create-policy"]', route: "/policies" },
+      { title: "Natural Language", content: "Just describe the rule. For example: 'Sweep any USDC above $100k to Morpho Yield daily.'", icon: Info, selector: '[data-tour="ai-policy-prompt"]', route: "/policies" },
+      { title: "Compile", content: "The agent compiles your natural language into a highly deterministic, onchain executable policy.", icon: Zap, selector: '[data-tour="ai-policy-generate"]', route: "/policies" },
+      { title: "Deploy to Network", content: "Review the compiled configuration. Once confirmed, the policy runs continuously without human intervention.", icon: ShieldCheck, selector: '[data-tour="ai-policy-deploy"]', route: "/policies" },
     ]
   }
 };
@@ -88,10 +86,10 @@ export function DemoWalkthrough() {
   const prevStep = useStore(s => s.prevStep);
   const endWalkthrough = useStore(s => s.endWalkthrough);
   const walkthroughActive = useStore(s => s.walkthroughActive);
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
 
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
-  const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
+  const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0, isAbove: false });
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   const scenario = activeScenarioKey ? WALKTHROUGH_CONTENT[activeScenarioKey] : null;
@@ -101,7 +99,7 @@ export function DemoWalkthrough() {
   useLayoutEffect(() => {
     if (!walkthroughActive || !step) return;
 
-    if (step.route) {
+    if (step.route && step.route !== location) {
       navigate(step.route);
     }
 
@@ -115,35 +113,34 @@ export function DemoWalkthrough() {
           const tooltipWidth = tooltipRef.current?.offsetWidth || 384;
           const tooltipHeight = tooltipRef.current?.offsetHeight || 280;
           
-          // Calculate tooltip position (centered below or above)
           let top = rect.bottom + 24;
           let left = rect.left + rect.width / 2 - tooltipWidth / 2;
+          let isAbove = false;
           
-          // Adjust if off-screen horizontally
           left = Math.max(16, Math.min(window.innerWidth - tooltipWidth - 16, left));
           
-          // If it doesn't fit below, try above
           if (top + tooltipHeight + 20 > window.innerHeight) {
             top = rect.top - tooltipHeight - 24;
+            isAbove = true;
           }
           
-          // Final fallback to center if still bad
           if (top < 16) {
             top = Math.max(16, window.innerHeight / 2 - tooltipHeight / 2);
             left = Math.max(16, window.innerWidth / 2 - tooltipWidth / 2);
+            isAbove = false;
           }
 
-          setTooltipPos({ top, left });
+          setTooltipPos({ top, left, isAbove });
           el.scrollIntoView({ behavior: "smooth", block: "center" });
         } else {
           setTargetRect(null);
-          setTooltipPos({ top: window.innerHeight / 2 - 140, left: window.innerWidth / 2 - 192 });
+          setTooltipPos({ top: window.innerHeight / 2 - 140, left: window.innerWidth / 2 - 192, isAbove: false });
         }
       } else {
         setTargetRect(null);
-        setTooltipPos({ top: window.innerHeight / 2 - 140, left: window.innerWidth / 2 - 192 });
+        setTooltipPos({ top: window.innerHeight / 2 - 140, left: window.innerWidth / 2 - 192, isAbove: false });
       }
-    }, 400); // More time for layout shifts
+    }, 400);
 
     return () => clearTimeout(timer);
   }, [walkthroughActive, currentStep, step?.selector, step?.route, navigate]);
@@ -153,8 +150,14 @@ export function DemoWalkthrough() {
   const Icon = step.icon;
   const isLast = currentStep >= scenario.steps.length - 1;
 
-  return (
-    <div className="fixed inset-0 z-[100] pointer-events-none">
+  const handleAction = (e: React.MouseEvent, action: () => void) => {
+    e.preventDefault();
+    e.stopPropagation();
+    action();
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] pointer-events-none">
       <AnimatePresence>
         {/* Backdrop with Hole */}
         <motion.div 
@@ -167,7 +170,7 @@ export function DemoWalkthrough() {
               ? `polygon(0% 0%, 0% 100%, ${targetRect.left}px 100%, ${targetRect.left}px ${targetRect.top}px, ${targetRect.right}px ${targetRect.top}px, ${targetRect.right}px ${targetRect.bottom}px, ${targetRect.left}px ${targetRect.bottom}px, ${targetRect.left}px 100%, 100% 100%, 100% 0%)`
               : "none"
           }}
-          onClick={endWalkthrough}
+          onClick={(e) => handleAction(e, endWalkthrough)}
         />
       </AnimatePresence>
 
@@ -189,15 +192,24 @@ export function DemoWalkthrough() {
         transition={{ type: "spring", damping: 30, stiffness: 200 }}
         className="absolute w-[calc(100vw-32px)] md:w-96 pointer-events-auto"
       >
-        <Card className="shadow-2xl border-primary/20 bg-card/95 backdrop-blur-xl ring-1 ring-white/10">
-          <CardHeader className="pb-2 border-b border-white/5 flex flex-row items-center justify-between bg-primary/5">
+        <Card className="shadow-2xl border-primary/20 bg-card/95 backdrop-blur-xl ring-1 ring-white/10 relative">
+          {/* Tooltip Pointer Arrow */}
+          {targetRect && (
+            <div 
+              className={cn(
+                "absolute left-1/2 -translate-x-1/2 w-4 h-4 bg-card border-primary/20 rotate-45 pointer-events-none",
+                tooltipPos.isAbove ? "bottom-[-9px] border-b border-r shadow-[2px_2px_4px_rgba(0,0,0,0.1)]" : "top-[-9px] border-t border-l bg-primary/5"
+              )}
+            />
+          )}
+          <CardHeader className="pb-2 border-b border-white/5 flex flex-row items-center justify-between bg-primary/5 rounded-t-xl">
             <div className="flex items-center gap-2">
               <div className="p-1 rounded-md bg-primary/20 text-primary">
                 <Zap className="h-3.5 w-3.5 fill-primary" />
               </div>
               <CardTitle className="text-xs font-bold tracking-widest uppercase opacity-80">{scenario.title}</CardTitle>
             </div>
-            <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 hover:bg-primary/10" onClick={endWalkthrough}>
+            <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 hover:bg-primary/10" onClick={(e) => handleAction(e, endWalkthrough)}>
               <X className="h-4 w-4" />
             </Button>
           </CardHeader>
@@ -234,7 +246,7 @@ export function DemoWalkthrough() {
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={prevStep} 
+              onClick={(e) => handleAction(e, prevStep)} 
               disabled={currentStep === 0}
               className="text-xs h-8 hover:bg-white/5"
             >
@@ -245,7 +257,7 @@ export function DemoWalkthrough() {
                  <Button 
                   variant="default" 
                   size="sm" 
-                  onClick={endWalkthrough}
+                  onClick={(e) => handleAction(e, endWalkthrough)}
                   className="text-xs h-8 px-6 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
                 >
                   Explore MVP <ChevronRight className="h-3 w-3 ml-1" />
@@ -254,7 +266,7 @@ export function DemoWalkthrough() {
                 <Button 
                   variant="secondary" 
                   size="sm" 
-                  onClick={nextStep}
+                  onClick={(e) => handleAction(e, nextStep)}
                   className="text-xs h-8 px-6 bg-white/10 hover:bg-white/20 border-white/5"
                 >
                   Next <ChevronRight className="h-3 w-3 ml-1" />
@@ -264,6 +276,7 @@ export function DemoWalkthrough() {
           </CardFooter>
         </Card>
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 }

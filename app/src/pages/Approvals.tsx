@@ -86,9 +86,14 @@ export function Approvals() {
                 <TableHead />
               </TableRow>
             </TableHeader>
-            <TableBody id="approvals-queue">
-              {filtered.map((intent) => (
-                <TableRow key={intent.id} className="cursor-pointer" onClick={() => setSelected(intent)}>
+            <TableBody id="approvals-queue" data-tour="approvals-queue">
+              {filtered.map((intent) => {
+                let rowTour = undefined;
+                if (intent.title.includes("Sweep")) rowTour = "approvals-sweep-row";
+                if (intent.title.includes("Morpho")) rowTour = "approvals-morpho-row";
+                if (intent.title.includes("High Value Transfer")) rowTour = "approvals-anomaly-row";
+                return (
+                <TableRow key={intent.id} data-tour={rowTour} className="cursor-pointer" onClick={() => setSelected(intent)}>
                   <TableCell>
                     <div>
                       <p className="text-sm font-medium">{intent.title}</p>
@@ -113,7 +118,8 @@ export function Approvals() {
                     <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setSelected(intent); }}>Review</Button>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         )}

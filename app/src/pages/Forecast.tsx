@@ -16,7 +16,7 @@ export function Forecast() {
   return (
     <div id="forecast-section" className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card id="forecast-chart" className="lg:col-span-2">
+        <Card id="forecast-chart" data-tour="forecast-chart" className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-sm font-bold flex items-center gap-2">
@@ -34,7 +34,7 @@ export function Forecast() {
           <CardContent>
             <div className="h-64 w-full flex items-end justify-between gap-2 pt-4">
               {data.map((d, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative">
+                <div key={i} className="flex-1 h-full flex flex-col justify-end items-center gap-2 group relative">
                   {d.event && (
                     <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                       <div className="bg-black/80 backdrop-blur-md border border-white/10 p-2 rounded-md shadow-xl whitespace-nowrap">
@@ -61,7 +61,7 @@ export function Forecast() {
         </Card>
 
         <div className="space-y-4">
-          <Card id="forecast-intelligence" className="border-chart-3/20 bg-chart-3/5">
+          <Card id="forecast-intelligence" data-tour="forecast-intelligence" className="border-chart-3/20 bg-chart-3/5">
             <CardHeader className="pb-2">
               <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-chart-3">AI Intelligence</CardTitle>
             </CardHeader>
@@ -70,13 +70,13 @@ export function Forecast() {
               <p className="text-xs text-muted-foreground leading-relaxed">
                 "Based on scheduled vendor payments on Wednesday and Friday, your Base Operating wallet will drop below the $50k target floor."
               </p>
-              <div className="p-3 bg-black/20 rounded-lg border border-chart-3/10 flex items-start gap-3">
+              <div data-tour="forecast-recommendation" className="p-3 bg-black/20 rounded-lg border border-chart-3/10 flex items-start gap-3">
                 <div className="mt-0.5 p-1 rounded bg-chart-3/20 text-chart-3">
                   <TrendingUp className="h-3 w-3" />
                 </div>
                 <div className="space-y-1">
                   <p className="text-[11px] font-bold">Recommended Rebalance</p>
-                  <p className="text-[10px] text-muted-foreground">Move <Money amount={25000} /> from ETH Reserve to Base Operating by Tuesday 10:00 AM.</p>
+                  <p className="text-[10px] text-muted-foreground">Move <Money amount={25080} /> from ETH Reserve to Base Operating by Tuesday 10:00 AM.</p>
                 </div>
               </div>
             </CardContent>

@@ -14,6 +14,9 @@ import { Badge } from "@/components/ui/badge";
 import { Play, Pause, Zap } from "lucide-react";
 import type { Policy, PolicyType } from "@/types/domain";
 
+import { AIPolicyBuilder } from "@/components/shared/AIPolicyBuilder";
+import { Bot } from "lucide-react";
+
 const TYPES: { value: PolicyType | "all"; label: string }[] = [
   { value: "all", label: "All" },
   { value: "sweep", label: "Sweeps" },
@@ -33,6 +36,7 @@ export function Policies() {
   const [tab, setTab] = useState<PolicyType | "all">("all");
   const [selected, setSelected] = useState<Policy | null>(null);
   const [simulating, setSimulating] = useState<string | null>(null);
+  const [builderOpen, setBuilderOpen] = useState(false);
 
   const filtered = tab === "all" ? policies : policies.filter((p) => p.type === tab);
   const accName = (id: string) => accounts.find((a) => a.id === id)?.name ?? id;
@@ -48,13 +52,24 @@ export function Policies() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as PolicyType | "all")}>
+          <TabsList>
+            {TYPES.map((t) => (
+              <TabsTrigger key={t.value} value={t.value}>{t.label}</TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <Button data-tour="btn-create-policy" onClick={() => setBuilderOpen(true)} className="gap-2">
+          <Bot className="h-4 w-4" />
+          Create via Agent
+        </Button>
+      </div>
+      
+      <AIPolicyBuilder open={builderOpen} onOpenChange={setBuilderOpen} />
+
       <Tabs value={tab} onValueChange={(v) => setTab(v as PolicyType | "all")}>
-        <TabsList>
-          {TYPES.map((t) => (
-            <TabsTrigger key={t.value} value={t.value}>{t.label}</TabsTrigger>
-          ))}
-        </TabsList>
-        <TabsContent value={tab}>
+        <TabsContent value={tab} className="mt-0">
           <Card>
             {filtered.length === 0 ? (
               <EmptyState title="No policies" description={`No ${tab === "all" ? "" : tab} policies yet.`} />
@@ -75,6 +90,7 @@ export function Policies() {
                     <TableRow 
                       key={policy.id} 
                       id={`policies-${policy.type}`}
+                      data-tour={`policies-${policy.type}`}
                       className="cursor-pointer" 
                       onClick={() => setSelected(policy)}
                     >

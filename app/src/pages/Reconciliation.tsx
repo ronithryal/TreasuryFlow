@@ -82,7 +82,7 @@ export function Reconciliation() {
   const completePct = Math.round(stats.fullyTaggedRatio * 100);
 
   return (
-    <div id="reconciliation-section" className="space-y-4">
+    <div id="reconciliation-section" data-tour="reconciliation-section" className="space-y-4">
       {/* Month-end completeness */}
       <Card>
         <CardContent className="flex items-center gap-6 py-4">

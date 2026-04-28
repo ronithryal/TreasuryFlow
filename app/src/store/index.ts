@@ -112,7 +112,7 @@ export interface RootState {
   injectInbound: (inbound: { collectionAccountId: AccountId; amount: number }) => string;
 
   /** Demo scenario triggers — wired to the Overview buttons. */
-  triggerScenario: (kind: "sweep" | "rebalance" | "friday_payout" | "deposit_routing" | "month_end" | "wallet_connect_sweep" | "morpho_yield" | "anomaly_warning" | "counterparty_risk" | "market_shock" | "predictive_forecast" | "audit_pdf") => void;
+  triggerScenario: (kind: "sweep" | "rebalance" | "friday_payout" | "deposit_routing" | "month_end" | "wallet_connect_sweep" | "morpho_yield" | "anomaly_warning" | "counterparty_risk" | "market_shock" | "predictive_forecast" | "audit_pdf" | "create_policy") => void;
 }
 
 // Internal helpers ---------------------------------------------------------
@@ -491,6 +491,8 @@ export const useStore = create<RootState>()(
       },
 
       triggerScenario: (kind) => {
+        // Reset to seed first to guarantee deterministic walkthrough state
+        get().resetToSeed();
         const state = get();
         // Advance the demo clock by ~1 minute to make the new activity timestamp distinct.
         const newNow = dayjs(state.now).add(1, "minute").toISOString();
@@ -565,6 +567,10 @@ export const useStore = create<RootState>()(
             break;
           }
           case "audit_pdf": {
+            // pure UI hint
+            break;
+          }
+          case "create_policy": {
             // pure UI hint
             break;
           }
