@@ -14,6 +14,7 @@ import { Reconciliation } from "@/pages/Reconciliation";
 import { Settings } from "@/pages/Settings";
 import { Yield } from "@/pages/Yield";
 import { Entities } from "@/pages/Entities";
+import { ComingSoon } from "@/pages/ComingSoon";
 import { DemoWalkthrough } from "@/components/demo/DemoWalkthrough";
 import { useStore } from "@/store";
 import { useEffect } from "react";
@@ -31,6 +32,7 @@ const PAGE_META: Record<string, { title: string; subtitle?: string }> = {
   "/yield": { title: "Yield Strategies", subtitle: "Non-custodial performance optimization" },
   "/entities": { title: "Legal Entities", subtitle: "Multi-entity organizational structure" },
   "/settings": { title: "Settings", subtitle: "Roles, thresholds, and funding rails" },
+  "/roadmap": { title: "Roadmap", subtitle: "Institutional-grade treasury infrastructure" },
 };
 
 function Shell({ path, children }: { path: string; children: React.ReactNode }) {
@@ -80,6 +82,7 @@ export function App() {
         <Route path="/yield">{() => <Shell path="/yield"><Yield /></Shell>}</Route>
         <Route path="/entities">{() => <Shell path="/entities"><Entities /></Shell>}</Route>
         <Route path="/settings">{() => <Shell path="/settings"><Settings /></Shell>}</Route>
+        <Route path="/roadmap">{() => <Shell path="/roadmap"><ComingSoon /></Shell>}</Route>
       </Switch>
       <DemoWalkthrough />
     </>

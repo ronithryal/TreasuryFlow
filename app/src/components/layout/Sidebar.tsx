@@ -14,6 +14,7 @@ import {
   Building2,
   BarChart3,
   Search,
+  Rocket,
 } from "lucide-react";
 
 const NAV = [
@@ -29,6 +30,7 @@ const NAV = [
   { href: "/audit", label: "Audit", icon: FileSpreadsheet },
   { href: "/reconciliation", label: "Reconciliation", icon: FileSpreadsheet },
   { href: "/settings", label: "Settings", icon: Settings2 },
+  { href: "/roadmap", label: "Roadmap", icon: Rocket },
 ];
 
 export function Sidebar() {
