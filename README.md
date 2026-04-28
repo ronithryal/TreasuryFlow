@@ -1,90 +1,87 @@
-# TreasuryFlow (Phase 0 MVP)
+# TreasuryFlow
 
 **TreasuryFlow is the non-custodial treasury operating system for the digital dollar economy — automating policy execution, continuous AI-verified audits, and real-time market response, all without ever touching your funds. We don't ask you to trust us. We prove it onchain.**
 
 ---
 
-### The Problem
-Traditional treasury operations are slow, manual, and expensive. Accounting firms charge $200k–$500k/year for audits that happen months after the fact. Market shocks require days of manual reconciliation. Reconciliation consumes 1–2 full-time employees.
+## 🚀 The Thesis: Eliminating the Cost of Trust
 
-### The Solution
-TreasuryFlow replaces the "trust us" model with mathematical proof. We combine:
-1. **Onchain Policy Engine** (Base Sepolia) — Immutable rules for sweeps, payouts, and rebalancing.
-2. **AI-Powered Forensics** (Perplexity Agent API) — Continuous, 24/7 auditing with automated transaction rationales and risk scoring.
-3. **Non-Custodial WalletConnect Flow** — You keep your keys. We just make sure your money does exactly what you told it to do.
+Traditional treasury operations are slow, manual, and expensive. Accounting firms charge $200k–$500k/year for audits that happen months after the fact. Reconciliation consumes 1–2 full-time employees. Market shocks (like the SVB collapse) require days of manual reconciliation and response.
 
-## Features
+TreasuryFlow replaces the "trust us" model with **mathematical proof**. We combine:
 
-### Shipped (v0.1)
-✅ **Policy Engine**
-- Sweep: move excess reserves above threshold
-- Rebalance: maintain minimum balance across chains
-- Payout runs: batch vendor/contractor payouts
-- Deposit routing: split inbound deposits (90/10 routes)
-- Cash-out: route through partner bank settlement
+1.  **Onchain Policy Engine** (Base Sepolia) — Immutable rules for sweeps, payouts, and rebalancing.
+2.  **AI-Powered Forensics** (Perplexity Agent API) — Continuous, 24/7 auditing with automated transaction rationales, risk scoring, and anomaly detection.
+3.  **Non-Custodial Architecture** — You keep your keys. We use WalletConnect to ensure your money does exactly what you told it to do, without ever taking custody.
 
-✅ **Maker-Checker Approval Workflow**
-- Auto-approve below thresholds
-- Multi-approver rules for high-value or risky transactions
-- First-time counterparty flagging
-- Real-time balance impact preview
+---
 
-✅ **Ledger & Reconciliation**
-- Deterministic execution and ledger posting
-- Auto-tag suggestions via Perplexity Agent API (with citations)
-- Intent rationale explainer (why did this policy fire?)
-- Month-end completeness scoring
-- ERP-ready CSV export
+## 🏗️ Dual-Demo Architecture
 
-✅ **AI Surfaces**
-- Policy drafting assistant: "convert this rule to a policy" → JSON with validation
-- Intent explainer: "why did this intent fire?" → 2-3 sentence rationale + citations
-- Tag suggester: "what's the accounting category?" → structured JSON (purpose, category, cost center)
-- All surfaces have mock fallback (no API key required for demo)
+TreasuryFlow uses a unique **Feature-Flagged Execution Engine** that allows the exact same codebase to power two distinct demo experiences:
 
-✅ **UX**
-- Dark mode + light mode
-- Persistent state (localStorage)
-- User switching (simulate maker-checker roles)
-- 7 demo scenario buttons (Wallet Connect, Morpho Yield, Anomaly, Risk, Market Shock, Forecast, Audit)
-- Risk flags with descriptive context
+*   **Mock Demo (`VITE_APP_MODE=mock`)**: A lightning-fast, zero-setup environment for exploring UI, AI rationales, and policy drafting. No wallet or testnet ETH required.
+*   **Testnet Demo (`VITE_APP_MODE=testnet`)**: A cryptographically verifiable environment on **Base Sepolia**. Users connect their own wallets, mint testnet USDC, and sign real transactions to execute policies.
 
-✅ **Web3 & Smart Contracts (Phase 0)**
-- Deployed to Base Sepolia (PolicyEngine, IntentRegistry, LedgerContract)
-- WalletConnect integration via Web3Modal
-- Morpho Yield integration
-- 5 new AI-powered hooks (Anomaly detection, Risk scoring, Market shock insights, Predictive forecasting, Audit rationales)
+This architecture ensures 100% UI parity while providing either a frictionless demo or a "proof of execution" for investors and auditors.
 
-### Verified
-- 28 unit tests (policy engine, approvals, execution, ledger, reconciliation — 100% branch coverage)
-- 4 end-to-end demo scenarios
-- Production build: 145KB gzip
-- Zero TypeScript errors
+---
 
-### Coming Soon (v1.0)
-🔨 **Coinbase for Business Integration** (pending approval)
-- Real onchain execution via Coinbase API
-- Live balance polling (Base, Ethereum, Polygon)
-- Actual USDC transfers (sweep, rebalance, payouts)
-- Settlement confirmation and retry logic
+## ✨ Features
 
-🔨 **Compliance & Audit**
-- PDF audit reports with Perplexity citations
-- Policy change log (version history)
-- Approval chain reconstruction
-- Counterparty limit audit trail
+### ✅ Shipped (v0.1 & v0.2)
 
-🔨 **Real Backend**
-- Postgres database + Node.js API
-- Authentication & session management
-- Immutable audit log
-- WebSocket real-time updates
+*   **Autonomous Policy Engine**:
+    *   **Sweep**: Move excess reserves above a custom threshold.
+    *   **Rebalance**: Maintain minimum balance across multiple chains/accounts.
+    *   **Payout Runs**: Batch vendor/contractor payouts with risk flagging.
+    *   **Deposit Routing**: Automatically split inbound deposits (e.g., 90/10 routes).
+    *   **Cash-out**: Route through partner bank settlement (simulated).
+*   **Maker-Checker Approval Workflow**:
+    *   Auto-approve below thresholds.
+    *   Multi-approver rules for high-value or risky transactions.
+    *   First-time counterparty flagging.
+    *   Real-time balance impact previews.
+*   **Ledger & Reconciliation**:
+    *   Deterministic execution and real-time ledger posting.
+    *   Month-end completeness scoring.
+    *   ERP-ready CSV export (NetSuite/QuickBooks compatible).
+*   **Advanced AI Surfaces (Perplexity Agent API)**:
+    *   **Policy Drafting**: Natural language → Validated Policy JSON.
+    *   **Intent Explainer**: "Why did this policy fire?" with citations.
+    *   **Tag Suggester**: Automated accounting categorization with reasoning.
+    *   **Anomaly Detection**: Flags unusual patterns (timing, value, frequency).
+    *   **Risk Scoring**: AI assessment of new counterparties.
+    *   **Market Shock Insights**: Real-time analysis of price volatility.
+    *   **Predictive Forecasting**: 1-7 day balance projections.
+    *   **Audit Rationales**: Human-readable explanations for every onchain event.
 
-## Quick Start
+### 🛡️ Testnet Proof (Base Sepolia)
+
+*   **MockUSDC Faucet**: Onboard in one click by minting 100k testnet USDC.
+*   **TreasuryVault Contract**: Real onchain custody (testnet) and execution.
+*   **Cryptographic Audit Trail**: Every policy execution emits a `PolicyExecuted` event, readable on Basescan.
+*   **WalletConnect Integration**: Support for MetaMask, Coinbase Wallet, Rainbow, and any WC-compatible wallet.
+
+---
+
+## 🛠️ Tech Stack
+
+*   **Frontend**: React 18, TypeScript, Vite, Tailwind CSS.
+*   **State Management**: Zustand (Domain-sliced with localStorage persistence).
+*   **AI**: Perplexity Agent API (Structured JSON outputs + Citations).
+*   **Web3**: Wagmi, Viem, Web3Modal (AppKit).
+*   **Smart Contracts**: Solidity, Foundry (Deployed to Base Sepolia).
+*   **Validation**: Zod (Branded IDs + System boundary validation).
+
+---
+
+## 🚦 Quick Start
 
 ### Prerequisites
-- Node.js 18+
-- npm or yarn
+
+*   Node.js 18+
+*   npm or yarn
 
 ### Installation
 
@@ -97,132 +94,47 @@ npm install
 
 ```bash
 cp .env.example .env
-# Optional: add PERPLEXITY_API_KEY=... to .env for live AI calls
-# Without a key, the app uses deterministic mock responses
+# Set VITE_APP_MODE=mock (default) or testnet
+# Optional: Add PERPLEXITY_API_KEY for live AI calls (otherwise uses mock fallback)
 
 npm run dev
 ```
 
-Opens http://localhost:5173 with HMR enabled.
+Opens http://localhost:5173 with HMR.
 
 ### Testing
 
 ```bash
-npm run test        # Run all 28 unit tests
-npm run test:watch  # Watch mode
+npm run test        # Runs 28+ unit tests (100% domain coverage)
 ```
 
-### Production Build
+---
 
-```bash
-npm run build       # Creates dist/
-npm run preview     # Preview production build locally
-```
+## 📅 Roadmap
 
-Deploy `dist/` to any static host (Vercel, Netlify, S3, etc.).
+### Phase 1: MVP Demo (Current)
+✅ Core policy engine + dual-demo architecture.
+✅ Perplexity AI integration (8 surfaces).
+✅ Base Sepolia contract deployment & WalletConnect.
 
-## Environment Variables
+### Phase 2: Production Ready (v1.0)
+🔨 **Coinbase for Business Integration**: Real onchain execution via Coinbase API.
+🔨 **Compliance Reporting**: PDF audit reports with Perplexity citations.
+🔨 **Real Backend**: Postgres + Node.js (replacing localStorage).
+🔨 **Authentication**: Role-based access control (RBAC).
 
-### Development
-- **`PERPLEXITY_API_KEY`** (optional) — Perplexity API key for live Agent API calls. If unset, uses deterministic mock responses.
-- Vite dev proxy (`/api/agent-proxy`) injects the bearer token server-side (never exposed to browser).
+### Phase 3: Market Expansion (v1.1)
+🔨 **Fiat On/Offramps**: Coinbase Onramp/Offramp integration.
+🔨 **ERP Sync**: Direct integration with NetSuite, QuickBooks, and Xero.
+🔨 **Expanded AI Audit**: Automated month-end close summaries.
 
-### Production
-- **`VITE_AGENT_PROXY_URL`** (optional) — URL of your production proxy (e.g., Vercel serverless function or Lambda).
-- Without this, the app falls back to mock client.
+---
 
-### Production Perplexity Proxy (Example: Vercel)
-You'll need a simple serverless function to inject the Perplexity API key on behalf of the client:
-
-```typescript
-// api/agent-proxy.ts (Vercel)
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
-  
-  const response = await fetch('https://api.perplexity.ai/v1/agent', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(req.body),
-  });
-  
-  return res.status(response.status).json(await response.json());
-}
-```
-
-Then set `VITE_AGENT_PROXY_URL=https://your-vercel-domain.com/api/agent-proxy` in production.
-
-## Architecture
-
-**Domain-first design:**
-- `src/types/domain.ts` — Single source of truth (Zod schemas + branded ID types)
-- `src/domain/` — Pure policy engine, approval rules, execution simulator, ledger (testable without UI)
-- `src/store/` — Zustand slices per domain with localStorage persistence
-- `src/components/shared/` — Reusable UI primitives
-- `src/pages/` — Page-level UI composition
-- `src/services/perplexity.ts` — AI adapter (fetch + mock implementations)
-
-**Key principles:**
-- All state transitions are pure functions (enables deterministic testing)
-- Zod validates at system boundaries only
-- Branded IDs prevent cross-wiring at compile time
-- Mock AI client enables demoing without API keys
-
-See [eng.md](./eng.md) for full architecture, known limitations, and tech debt.
-
-## Roadmap
-
-See [product.md](./product.md) for detailed vision, customer personas, roadmap (v0.1 → v1.0 → v2.0), metrics, and competitive differentiation.
-
-**Quick timeline:**
-- **v0.1** (shipped): MVP demo + Perplexity AI integration
-- **v1.0** (next 4 weeks): Coinbase for Business + real backend + compliance reporting
-- **v1.1** (weeks 5–8): Coinbase Onramp/Offramp + expanded AI audit
-- **v2.0** (months 3+): Liquidity pools, cross-chain routing, institutional partnerships
-
-## Use Cases
-
-### Treasury Manager
-Reduce operational overhead: policies run autonomously, approvals in seconds, 100% audit trail.
-
-### Finance Controller
-Provide auditors continuous, verifiable compliance: real-time tagged ledger, drop-in audit reports, 40% cost reduction ($200k/year for $50M AUM).
-
-### CFO
-Respond to market shocks in seconds: real-time rebalancing, policy-enforced counterparty limits, zero $10M+ capital events.
-
-### Compliance Officer
-Reduce audit burden by 60%: every decision logged with rationale, policy versioning, Perplexity citations.
-
-## Testing the Demo
-
-**7 scenario buttons on Overview page:**
-
-1. **Wallet + Sweep** — Connect Wallet & trigger sweep policy
-2. **Morpho Yield** — Deposit idle USDC to Morpho for yield
-3. **Anomaly Warning** — High-value transfer at odd time triggers AI review
-4. **Counterparty Risk** — First-time vendor triggers AI risk assessment
-5. **Market Shock** — Price alert triggers rebalancing suggestion
-6. **Predictive Forecast** — AI balance projections 1-7 days out
-7. **Audit PDF** — Generate immutable onchain audit report
-
-Each scenario completes its full lifecycle visibly: intent → approval (if needed) → execution → ledger update.
-
-## Support & Contribution
-
-- 📋 [Engineering Log](./eng.md) — Architecture decisions, known limitations, tech debt
-- 📈 [Product Log](./product.md) — Vision, roadmap, metrics, customer archetypes
-- 🐛 [Issues](https://github.com/ronithryal/TreasuryFlow/issues) — Bug reports and feature requests
-- 💬 Slack/Discord (coming soon)
-
-## License
+## 📄 License
 
 MIT — See [LICENSE](./LICENSE) for details.
 
 ---
 
-**Built with:** React 18 • TypeScript • Vite • Tailwind CSS • Zustand • Perplexity Agent API • Zod • Vitest
-
-**Status:** MVP in production demo. Coinbase integrations pending approval (v1.0).
+**Built by the TreasuryFlow Team.**
+**Status:** v0.2 MVP in production demo. v1.0 Coinbase integrations in progress.
