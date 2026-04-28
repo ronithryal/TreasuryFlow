@@ -135,6 +135,7 @@ export function Approvals() {
             <ApprovalDecisionBar
               canDecide={selected.requestedBy !== currentUserId}
               reasonDisabled="You initiated this intent — a different approver must decide."
+              intent={selected}
               onDecision={({ decision, comment }) => {
                 decideOnIntent(selected.id as IntentId, decision, comment);
                 setSelected(null);

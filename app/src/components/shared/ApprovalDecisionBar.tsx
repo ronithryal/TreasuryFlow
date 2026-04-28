@@ -1,19 +1,112 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { Check, X, MessageSquareWarning } from "lucide-react";
-import { useWriteContract } from "wagmi";
+import { Check, X, MessageSquareWarning, ExternalLink } from "lucide-react";
+import { IS_TESTNET } from "@/web3/mode";
+import { BASESCAN_TX } from "@/web3/testnet";
+import type { Intent } from "@/types/domain";
+import { useState } from "react";
 
 interface Props {
   canDecide: boolean;
   reasonDisabled?: string;
-  onDecision: (d: { decision: "approve" | "reject" | "request_changes"; comment?: string }) => void;
+  intent?: Intent;
+  onDecision: (d: { decision: "approve" | "reject" | "request_changes"; comment?: string; txHash?: string }) => void;
 }
 
-export function ApprovalDecisionBar({ canDecide, reasonDisabled, onDecision }: Props) {
+/**
+ * Shell component. Delegates to the testnet variant (wagmi hooks) or the mock
+ * variant (pure UI) depending on build mode so that wagmi hooks are never
+ * called outside a WagmiProvider.
+ */
+export function ApprovalDecisionBar(props: Props) {
+  if (IS_TESTNET) return <TestnetDecisionBar {...props} />;
+  return <MockDecisionBar {...props} />;
+}
+
+// ---- mock variant (no wagmi) ------------------------------------------------
+
+function MockDecisionBar({ canDecide, reasonDisabled, onDecision }: Props) {
   const [comment, setComment] = useState("");
-  const { writeContractAsync, isPending } = useWriteContract();
+  return (
+    <DecisionLayout
+      comment={comment}
+      setComment={setComment}
+      canDecide={canDecide}
+      reasonDisabled={reasonDisabled}
+      isPending={false}
+      txHash={undefined}
+      onRequestChanges={() => onDecision({ decision: "request_changes", comment: comment || undefined })}
+      onReject={() => onDecision({ decision: "reject", comment: comment || undefined })}
+      onApprove={() => onDecision({ decision: "approve", comment: comment || undefined })}
+      approveLabel="Approve"
+    />
+  );
+}
+
+// ---- testnet variant (wagmi hooks safe here) --------------------------------
+
+import { useTestnetExecution } from "@/web3/useTestnetExecution";
+
+function TestnetDecisionBar({ canDecide, reasonDisabled, intent, onDecision }: Props) {
+  const [comment, setComment] = useState("");
+  const [txHash, setTxHash] = useState<string | undefined>();
+  const [error, setError] = useState<string | undefined>();
+  const { executeIntentOnchain, isPending } = useTestnetExecution();
+
+  const handleApprove = async () => {
+    setError(undefined);
+    if (intent) {
+      try {
+        const hash = await executeIntentOnchain(intent, intent.type ?? "execute");
+        setTxHash(hash);
+        onDecision({ decision: "approve", comment: comment || undefined, txHash: hash });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      }
+      return;
+    }
+    onDecision({ decision: "approve", comment: comment || undefined });
+  };
+
+  return (
+    <>
+      {error ? <p className="text-xs text-destructive mb-2">{error}</p> : null}
+      <DecisionLayout
+        comment={comment}
+        setComment={setComment}
+        canDecide={canDecide}
+        reasonDisabled={reasonDisabled}
+        isPending={isPending}
+        txHash={txHash}
+        onRequestChanges={() => onDecision({ decision: "request_changes", comment: comment || undefined })}
+        onReject={() => onDecision({ decision: "reject", comment: comment || undefined })}
+        onApprove={handleApprove}
+        approveLabel={isPending ? "Confirm in Wallet…" : "Approve Onchain"}
+      />
+    </>
+  );
+}
+
+// ---- shared layout ----------------------------------------------------------
+
+interface LayoutProps {
+  comment: string;
+  setComment: (v: string) => void;
+  canDecide: boolean;
+  reasonDisabled?: string;
+  isPending: boolean;
+  txHash?: string;
+  onRequestChanges: () => void;
+  onReject: () => void;
+  onApprove: () => void;
+  approveLabel: string;
+}
+
+function DecisionLayout({
+  comment, setComment, canDecide, reasonDisabled, isPending, txHash,
+  onRequestChanges, onReject, onApprove, approveLabel,
+}: LayoutProps) {
   return (
     <div className="space-y-3" data-tour="approvals-decision-bar">
       <Textarea
@@ -22,6 +115,17 @@ export function ApprovalDecisionBar({ canDecide, reasonDisabled, onDecision }: P
         onChange={(e) => setComment(e.target.value)}
         disabled={!canDecide}
       />
+      {txHash ? (
+        <a
+          href={BASESCAN_TX(txHash)}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-1 font-mono text-[11px] text-primary hover:underline"
+        >
+          tx {txHash.slice(0, 8)}…{txHash.slice(-6)}
+          <ExternalLink className="h-3 w-3" />
+        </a>
+      ) : null}
       <TooltipProvider>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
           {!canDecide && reasonDisabled ? (
@@ -33,69 +137,22 @@ export function ApprovalDecisionBar({ canDecide, reasonDisabled, onDecision }: P
             </Tooltip>
           ) : null}
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!canDecide}
-              onClick={() => onDecision({ decision: "request_changes", comment: comment || undefined })}
-            >
+            <Button variant="outline" size="sm" disabled={!canDecide || isPending} onClick={onRequestChanges}>
               <MessageSquareWarning className="h-4 w-4" />
               Request changes
             </Button>
             <Button
-              variant="outline"
-              size="sm"
-              disabled={!canDecide}
-              onClick={() => onDecision({ decision: "reject", comment: comment || undefined })}
+              variant="outline" size="sm"
+              disabled={!canDecide || isPending}
+              onClick={onReject}
               className="text-destructive hover:text-destructive"
             >
               <X className="h-4 w-4" />
               Reject
             </Button>
-            <Button
-              size="sm"
-              disabled={!canDecide || isPending}
-              onClick={async () => {
-                // In a real environment, this would build a Safe transaction
-                // using @safe-global/protocol-kit and @safe-global/api-kit,
-                // propose it to the Safe transaction service, and then ask
-                // the user to sign it via Wagmi useSignMessage/useWriteContract.
-                // 
-                // Example Safe integration:
-                // const safeProtocolKit = await Safe.init({ provider: ..., safeAddress: ... })
-                // const safeTransaction = await safeProtocolKit.createTransaction({ transactions: [...] })
-                // const signedSafeTx = await safeProtocolKit.signTransaction(safeTransaction)
-                // await apiKit.proposeTransaction({ safeAddress, safeTransactionData: signedSafeTx.data, ... })
-                
-                try {
-                  // Simulate an onchain interaction with Wagmi
-                  if (writeContractAsync) {
-                    await writeContractAsync({
-                      abi: [{
-                        type: 'function',
-                        name: 'approve',
-                        inputs: [
-                          { name: 'spender', type: 'address' },
-                          { name: 'amount', type: 'uint256' }
-                        ],
-                        outputs: [{ type: 'bool' }],
-                        stateMutability: 'nonpayable'
-                      }],
-                      address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', // USDC on Base Sepolia
-                      functionName: 'approve',
-                      args: ['0x1111111111111111111111111111111111111111', BigInt(1000000)], // Mock spender
-                    });
-                  }
-                  
-                  // Once the transaction succeeds or is mocked, resolve the intent
-                  onDecision({ decision: "approve", comment: comment || undefined });
-                } catch (error) {
-                  console.error("Transaction failed:", error);
-                }
-              }}
-            >
+            <Button size="sm" disabled={!canDecide || isPending} onClick={onApprove}>
               <Check className="h-4 w-4" />
-              {isPending ? "Confirm in Wallet..." : "Approve Onchain"}
+              {approveLabel}
             </Button>
           </div>
         </div>

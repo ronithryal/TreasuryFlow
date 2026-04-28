@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Money } from "@/components/shared/Money";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { TestnetSetupBanner } from "@/components/shared/TestnetSetupBanner";
 import { totalManaged, totalByType } from "@/domain/ledger";
 import { fmtRelative } from "@/lib/format";
 import {
@@ -83,6 +84,7 @@ export function Overview() {
 
   return (
     <div className="space-y-6">
+      <TestnetSetupBanner />
       {/* Vision Banner */}
       <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 p-6">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">

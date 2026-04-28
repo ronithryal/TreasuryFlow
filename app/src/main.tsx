@@ -3,11 +3,18 @@ import ReactDOM from "react-dom/client";
 import "./index.css";
 import { App } from "./App";
 import { Web3Provider } from "./web3/Web3Provider";
+import { TestnetHydrator } from "./web3/TestnetHydrator";
+import { IS_TESTNET } from "./web3/mode";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <Web3Provider>
+    {IS_TESTNET ? (
+      <Web3Provider>
+        <TestnetHydrator />
+        <App />
+      </Web3Provider>
+    ) : (
       <App />
-    </Web3Provider>
+    )}
   </React.StrictMode>,
 );

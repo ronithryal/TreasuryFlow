@@ -50,6 +50,32 @@ interface UiState {
   demoEntered: boolean;
 }
 
+/**
+ * Testnet-only state. Lives next to the mock world so the UI can render the
+ * same components either way: when VITE_APP_MODE=testnet, hooks read the
+ * connected wallet/balance/executions from here instead of the seed data.
+ */
+export interface TestnetExecution {
+  intentId: string;
+  policyId?: string;
+  amount: number;
+  destination: string;
+  action: string;
+  txHash: string;
+  blockNumber?: number;
+  at: string;
+}
+
+export interface TestnetState {
+  connectedAddress: string | null;
+  /** Native ETH balance in human units. */
+  ethBalance: number;
+  /** Mock USDC balance in human units (6-decimal token). */
+  usdcBalance: number;
+  hydrated: boolean;
+  executions: TestnetExecution[];
+}
+
 export interface RootState {
   schemaVersion: number;
   // ----- Data -----
@@ -71,9 +97,15 @@ export interface RootState {
   ledger: LedgerEntry[];
   audit: AuditLogEntry[];
   ui: UiState;
+  testnet: TestnetState;
 
   // ----- Actions -----
   resetToSeed: () => void;
+  /** Bind the connected wallet to the demo's "Base Operating" account. */
+  hydrateTestnet: (address: string) => void;
+  setTestnetBalances: (balances: { eth?: number; usdc?: number }) => void;
+  recordTestnetExecution: (e: TestnetExecution) => void;
+  clearTestnet: () => void;
   setCurrentUser: (id: UserId) => void;
   setForceMockAi: (v: boolean) => void;
   setDarkMode: (v: boolean) => void;
@@ -214,6 +246,7 @@ export const useStore = create<RootState>()(
       activeScenario: null,
       currentStep: 0,
       ui: { forceMockAi: false, darkMode: false, demoEntered: false },
+      testnet: { connectedAddress: null, ethBalance: 0, usdcBalance: 0, hydrated: false, executions: [] },
 
       resetToSeed: () => {
         const fresh = fromSeed(SEED);
@@ -238,6 +271,56 @@ export const useStore = create<RootState>()(
         set((s) => ({ ui: { ...s.ui, darkMode: v } }));
       },
       setDemoEntered: (v) => set((s) => ({ ui: { ...s.ui, demoEntered: v } })),
+
+      hydrateTestnet: (address) => {
+        // Wipe the seed data so the testnet demo starts from a real-onchain
+        // empty state. The connected wallet *becomes* Base Operating.
+        const empty = fromSeed(SEED);
+        set({
+          ...empty,
+          // Zero out balances so the UI shows "$0 — fund your wallet" until
+          // the balance hooks resolve real numbers.
+          accounts: empty.accounts.map((a, idx) =>
+            idx === 0 ? { ...a, balance: 0, availableBalance: 0 } : { ...a, balance: 0, availableBalance: 0 },
+          ),
+          intents: [],
+          executions: [],
+          ledger: [],
+          audit: [
+            {
+              id: runtimeId("aud") as AuditId,
+              at: empty.now,
+              actor: empty.currentUserId,
+              event: { kind: "demo_reset" },
+            },
+          ],
+          testnet: {
+            connectedAddress: address,
+            ethBalance: 0,
+            usdcBalance: 0,
+            hydrated: true,
+            executions: [],
+          },
+        });
+      },
+
+      setTestnetBalances: ({ eth, usdc }) =>
+        set((s) => ({
+          testnet: {
+            ...s.testnet,
+            ethBalance: eth ?? s.testnet.ethBalance,
+            usdcBalance: usdc ?? s.testnet.usdcBalance,
+          },
+        })),
+
+      recordTestnetExecution: (e) =>
+        set((s) => ({ testnet: { ...s.testnet, executions: [e, ...s.testnet.executions] } })),
+
+      clearTestnet: () =>
+        set({
+          testnet: { connectedAddress: null, ethBalance: 0, usdcBalance: 0, hydrated: false, executions: [] },
+        }),
+
       startWalkthrough: (scenario) => set({ walkthroughActive: true, activeScenario: scenario, currentStep: 0 }),
       nextStep: () => set((s) => ({ currentStep: s.currentStep + 1 })),
       prevStep: () => set((s) => ({ currentStep: Math.max(0, s.currentStep - 1) })),
