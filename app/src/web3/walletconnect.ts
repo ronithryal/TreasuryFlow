@@ -1,7 +1,5 @@
 export { 
-  useWeb3Modal, 
-  useWeb3ModalAccount, 
-  useWeb3ModalProvider 
+  useWeb3Modal 
 } from '@web3modal/wagmi/react';
 
 export { projectId } from './wagmi';

@@ -3,15 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useStore } from "@/store";
 import { jsPDF } from "jspdf";
-import { Download } from "lucide-react";
-
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { useStore } from "@/store";
-import { jsPDF } from "jspdf";
-import { Download, FileText, ShieldCheck, Database, Fingerprint, ExternalLink } from "lucide-react";
-import { fmtDateAbs, fmtTitle } from "@/lib/format";
+import { Download, FileText, ShieldCheck, Database, ExternalLink } from "lucide-react";
 
 export function Audit() {
   const [generating, setGenerating] = useState(false);

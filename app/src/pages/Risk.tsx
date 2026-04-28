@@ -1,6 +1,6 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useStore } from "@/store";
-import { ShieldCheck, AlertTriangle, Search, Fingerprint, Globe } from "lucide-react";
+import { ShieldCheck, Search, Fingerprint, Globe } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export function Risk() {

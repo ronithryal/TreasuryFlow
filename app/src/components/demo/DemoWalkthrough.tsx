@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { useState, useLayoutEffect, useRef } from "react";
 import { useStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, ChevronRight, ChevronLeft, Zap, Info, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { X, ChevronRight, ChevronLeft, ShieldCheck, Info, Zap, CheckCircle2, Building2, TrendingUp, AlertTriangle, Search, Fingerprint, BarChart3, FileText } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
@@ -185,7 +185,7 @@ export function DemoWalkthrough() {
       <motion.div
         ref={tooltipRef}
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0, x: tooltipPos.left, y: tooltipPos.top }}
+        animate={{ opacity: 1, x: tooltipPos.left, y: tooltipPos.top }}
         transition={{ type: "spring", damping: 30, stiffness: 200 }}
         className="absolute w-[calc(100vw-32px)] md:w-96 pointer-events-auto"
       >

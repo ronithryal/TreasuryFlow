@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Money } from "@/components/shared/Money";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Zap, ShieldCheck, ArrowUpRight, TrendingUp, Landmark } from "lucide-react";
-import { cn } from "@/lib/cn";
 
 export function Yield() {
   const accounts = useStore((s) => s.accounts.filter(a => a.name.toLowerCase().includes("morpho")));

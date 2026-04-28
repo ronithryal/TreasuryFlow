@@ -1,5 +1,5 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Activity, TrendingUp, AlertCircle, ArrowDown, ArrowUp } from "lucide-react";
+import { TrendingUp, AlertCircle, ArrowDown, ArrowUp } from "lucide-react";
 import { Money } from "@/components/shared/Money";
 
 export function Forecast() {

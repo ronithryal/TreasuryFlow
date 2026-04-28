@@ -1,14 +1,13 @@
 import { useStore } from "@/store";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Money } from "@/components/shared/Money";
-import { Building2, Plus, Users, Wallet, ChevronRight } from "lucide-react";
+import { Building2, Plus, Wallet, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export function Entities() {
   const entities = useStore((s) => s.entities);
   const accounts = useStore((s) => s.accounts);
-  const users = useStore((s) => s.users);
 
   return (
     <div className="space-y-6">
