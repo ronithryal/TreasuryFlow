@@ -18,60 +18,68 @@ TreasuryFlow replaces the "trust us" model with **mathematical proof**. We combi
 
 ## 🏗️ Dual-Demo Architecture
 
-TreasuryFlow uses a unique **Feature-Flagged Execution Engine** that allows the exact same codebase to power two distinct demo experiences:
+TreasuryFlow powers two distinct demo experiences from a single codebase:
 
 *   **Mock Demo (`VITE_APP_MODE=mock`)**: A lightning-fast, zero-setup environment for exploring UI, AI rationales, and policy drafting. No wallet or testnet ETH required.
 *   **Testnet Demo (`VITE_APP_MODE=testnet`)**: A cryptographically verifiable environment on **Base Sepolia**. Users connect their own wallets, mint testnet USDC, and sign real transactions to execute policies.
 
-This architecture ensures 100% UI parity while providing either a frictionless demo or a "proof of execution" for investors and auditors.
+### TreasuryFlow Demo Modes
+
+| Capability | Mock Demo | Testnet Demo |
+|---|---|---|
+| Wallet required | No | Yes, Base Sepolia |
+| Token balances | Seed/mock data | Base Sepolia mUSDC |
+| Policy enforcement | Simulated | PolicyEngine validates onchain |
+| Payment request lifecycle | Simulated | IntentRegistry onchain |
+| Maker-checker | UI role simulation | Contract-enforced initiator != approver |
+| Fund movement | Simulated | TreasuryVault transfers mUSDC |
+| Ledger/audit evidence | Mock bundles | Onchain events + receipt tx hash |
+| AI policy builder | Mock/template behavior | Still partially demo/template |
+| CDP Embedded Wallets | Coming soon | Coming soon |
+| Login/auth | Simulated roles | Simulated roles |
+| Yield deployment | Coming soon/demo only | Testnet demo path only; no real yield |
 
 ---
 
-## ✨ Features
+## 🛡️ What is real vs simulated
 
-### ✅ Shipped (v0.1 & v0.2)
+TreasuryFlow is currently in an advanced MVP/Pilot stage. We are transparent about where the logic lives:
 
-*   **Autonomous Policy Engine**:
-    *   **Sweep**: Move excess reserves above a custom threshold.
-    *   **Rebalance**: Maintain minimum balance across multiple chains/accounts.
-    *   **Payout Runs**: Batch vendor/contractor payouts with risk flagging.
-    *   **Deposit Routing**: Automatically split inbound deposits (e.g., 90/10 routes).
-    *   **Cash-out**: Route through partner bank settlement (simulated).
-*   **Maker-Checker Approval Workflow**:
-    *   Auto-approve below thresholds.
-    *   Multi-approver rules for high-value or risky transactions.
-    *   First-time counterparty flagging.
-    *   Real-time balance impact previews.
-*   **Ledger & Reconciliation**:
-    *   Deterministic execution and real-time ledger posting.
-    *   Month-end completeness scoring.
-    *   ERP-ready CSV export (NetSuite/QuickBooks compatible).
-*   **Advanced AI Surfaces (Perplexity Agent API)**:
-    *   **Policy Drafting**: Natural language → Validated Policy JSON.
-    *   **Intent Explainer**: "Why did this policy fire?" with citations.
-    *   **Tag Suggester**: Automated accounting categorization with reasoning.
-    *   **Anomaly Detection**: Flags unusual patterns (timing, value, frequency).
-    *   **Risk Scoring**: AI assessment of new counterparties.
-    *   **Market Shock Insights**: Real-time analysis of price volatility.
-    *   **Predictive Forecasting**: 1-7 day balance projections.
-    *   **Audit Rationales**: Human-readable explanations for every onchain event.
+### Real in Testnet (Base Sepolia)
+- **Onchain Contracts**: Fully deployed and functional logic for `PolicyEngine`, `IntentRegistry`, `TreasuryVault`, and `LedgerContract`.
+- **Policy Validation**: `PolicyEngine` enforces limits (max amount) and allowed participants (source/destination) onchain.
+- **Payment Request Lifecycle**: The full "Create → Approve → Execute" intent lifecycle is handled by `IntentRegistry`.
+- **Maker-Checker Enforcement**: Smart contracts strictly forbid the initiator of an intent from being its approver.
+- **Fund Movement**: `TreasuryVault` executes real transfers of `mUSDC` testnet tokens.
+- **Forensic Evidence**: The Audit page consumes live contract events and displays verifiable transaction hashes with deep-links to Basescan.
 
-### 🛡️ Testnet Proof (Base Sepolia)
+### Simulated or Coming Soon
+- **Production Auth**: The demo uses role simulation (Initiator vs. CFO). Real auth/RBAC is coming in v1.0.
+- **CDP Embedded Wallets**: UI placeholders exist; integration is pending CDP enablement.
+- **Production Approvals**: Server-side demo signing is used for the "CFO" step to simplify the demo. Production will support Safe, WalletConnect, and CDP approvals.
+- **Integrations**: Coinbase for Business, Ramp, Circle, and ERP (NetSuite/QuickBooks) sync are on the roadmap.
+- **Real Yield**: While the "Yield" flow runs through the onchain golden path, it does not currently interact with real Aave/Morpho/Sky contracts.
+- **Compliance Workflows**: SOC 2 and KYB automations are roadmap items.
 
-*   **MockUSDC Faucet**: Onboard in one click by minting 100k testnet USDC.
-*   **TreasuryVault Contract**: Real onchain custody (testnet) and execution.
-*   **Cryptographic Audit Trail**: Every policy execution emits a `PolicyExecuted` event, readable on Basescan.
-*   **WalletConnect Integration**: Support for MetaMask, Coinbase Wallet, Rainbow, and any WC-compatible wallet.
+---
 
-#### Deployed Contracts — Base Sepolia (Chain ID 84532)
+## ⛓️ Base Sepolia Deployment (Chain ID 84532)
+
+The following P0 contracts are live on Base Sepolia. You can verify their source and state on Basescan.
 
 | Contract | Address |
 |----------|---------|
-| MockUSDC | [`0x576aAA911eC1caAd7F234F21b3607a98C9F669F2`](https://sepolia.basescan.org/address/0x576aAA911eC1caAd7F234F21b3607a98C9F669F2) |
-| TreasuryVault | [`0xaCB7F3Da6cF6cC7Fe35e74B35477A3065172151A`](https://sepolia.basescan.org/address/0xaCB7F3Da6cF6cC7Fe35e74B35477A3065172151A) |
-| PolicyEngine | [`0x01E0149639EB224CCc0557d3bd33b0FB05505a64`](https://sepolia.basescan.org/address/0x01E0149639EB224CCc0557d3bd33b0FB05505a64) |
-| IntentRegistry | [`0xf510c47823139B6819e4090d4583B518c66ee0d7`](https://sepolia.basescan.org/address/0xf510c47823139B6819e4090d4583B518c66ee0d7) |
-| LedgerContract | [`0x20cF3fB0A14FEce0889f69e1243a9d9f78AC508b`](https://sepolia.basescan.org/address/0x20cF3fB0A14FEce0889f69e1243a9d9f78AC508b) |
+| MockUSDC | [`0x240fb77d1c6bbe72bb59a08b379c7d94e905839b`](https://sepolia.basescan.org/address/0x240fb77d1c6bbe72bb59a08b379c7d94e905839b) |
+| PolicyEngine | [`0x0f01f0632a35493b63c87a4a422a783213abad0e`](https://sepolia.basescan.org/address/0x0f01f0632a35493b63c87a4a422a783213abad0e) |
+| LedgerContract | [`0x7e97006ccaf3050ae1f5c2187baab1b03287c12b`](https://sepolia.basescan.org/address/0x7e97006ccaf3050ae1f5c2187baab1b03287c12b) |
+| TreasuryVault | [`0x5f88f257cd264d0cfb2844debc8ea04406be8a1d`](https://sepolia.basescan.org/address/0x5f88f257cd264d0cfb2844debc8ea04406be8a1d) |
+| IntentRegistry | [`0x53eb4406785aa86b64c662102745fc85cf93d459`](https://sepolia.basescan.org/address/0x53eb4406785aa86b64c662102745fc85cf93d459) |
+
+### Pre-deployed Demo Policies
+The `Deploy.s.sol` script pre-configures the following policies in `PolicyEngine`:
+- **Policy #1**: `Vendor Payment` — Max 10,000 USDC.
+- **Policy #2**: `Treasury Sweep` — Max 100,000 USDC.
+- **Policy #3**: `Yield Deposit` — Max 500,000 USDC.
 
 ---
 
@@ -80,71 +88,45 @@ This architecture ensures 100% UI parity while providing either a frictionless d
 *   **Frontend**: React 18, TypeScript, Vite, Tailwind CSS.
 *   **State Management**: Zustand (Domain-sliced with localStorage persistence).
 *   **AI**: Perplexity Agent API (Structured JSON outputs + Citations).
-*   **Web3**: Wagmi, Viem, Web3Modal (AppKit).
+*   **Web3**: Wagmi, Viem, Reown AppKit (Web3Modal).
 *   **Smart Contracts**: Solidity, Foundry (Deployed to Base Sepolia).
-*   **Validation**: Zod (Branded IDs + System boundary validation).
 
 ---
 
 ## 🚦 Quick Start
 
 ### Prerequisites
-
 *   Node.js 18+
-*   npm or yarn
+*   Foundry (for contract testing)
 
 ### Installation
-
 ```bash
 cd app
 npm install
 ```
 
-### Development
-
+### Local Development
 ```bash
 cp .env.example .env
 # Set VITE_APP_MODE=mock (default) or testnet
-# Optional: Add PERPLEXITY_API_KEY for live AI calls (otherwise uses mock fallback)
-
+# See .env.example for required contract addresses and keys
 npm run dev
 ```
 
-Opens http://localhost:5173 with HMR.
-
-### Testing
-
+### Testing & Verification
+**Contracts**:
 ```bash
-npm run test        # Runs 28+ unit tests (100% domain coverage)
+cd contracts
+forge test -v
 ```
 
----
-
-## 🚀 Deployment
-
-### Live Demos
-
-**TreasuryFlow is deployed on Vercel:**
-
-- **Mock Demo** (No wallet required): https://treasuryflow-mock.vercel.app
-- **Testnet Demo** (Base Sepolia): https://treasuryflow-testnet.vercel.app
-
-### Deploy Your Own
-
-1. Clone this repository and push to GitHub
-2. Connect your GitHub repo to [Vercel](https://vercel.com)
-3. Set environment variables in Vercel Project Settings:
-   ```
-   VITE_APP_MODE=mock       # or "testnet"
-   VITE_PERPLEXITY_API_KEY=your_key  # Optional (uses mock fallback if not set)
-   ```
-4. Deploy with `vercel deploy` or via the Vercel Dashboard
-
-**For Testnet Demo Users:**
-- Connect a Web3 wallet (MetaMask, Coinbase Wallet, Rainbow, or WalletConnect-compatible)
-- Add Base Sepolia (Chain ID 84532) to your wallet
-- Request Base Sepolia ETH from the [Base Faucet](https://faucet.base.org)
-- Use the MockUSDC faucet in the app to mint 100k testnet USDC
+**App**:
+```bash
+cd app
+npm run typecheck
+npm test
+npm run build
+```
 
 ---
 
@@ -153,28 +135,15 @@ npm run test        # Runs 28+ unit tests (100% domain coverage)
 ### Phase 1: MVP Demo (Current)
 ✅ Core policy engine + dual-demo architecture.
 ✅ Perplexity AI integration (8 surfaces).
-✅ Base Sepolia contract deployment & WalletConnect.
-✅ Comprehensive security review resolved (OpenZeppelin access controls & balance-tracking).
-✅ CI/CD pipelines & automated secret scanning configured.
+✅ Base Sepolia contract deployment (P0 Refactor).
+✅ Maker-Checker "Golden Path" enforcement.
 
 ### Phase 2: Production Ready (v1.0)
-🔨 **Coinbase for Business Integration**: Real onchain execution via Coinbase API.
-🔨 **Compliance Reporting**: PDF audit reports with Perplexity citations.
-🔨 **Real Backend**: Postgres + Node.js (replacing localStorage).
+🔨 **Coinbase Integration**: Real execution via Coinbase for Business.
 🔨 **Authentication**: Role-based access control (RBAC).
-
-### Phase 3: Market Expansion (v1.1)
-🔨 **Fiat On/Offramps**: Coinbase Onramp/Offramp integration.
-🔨 **ERP Sync**: Direct integration with NetSuite, QuickBooks, and Xero.
-🔨 **Expanded AI Audit**: Automated month-end close summaries.
+🔨 **Audit PDF**: Exportable forensic reports with Perplexity citations.
 
 ---
 
 ## 📄 License
-
 MIT — See [LICENSE](./LICENSE) for details.
-
----
-
-**Built by the TreasuryFlow Team.**
-**Status:** v0.2 MVP in production demo. v1.0 Coinbase integrations in progress.

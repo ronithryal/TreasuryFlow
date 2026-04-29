@@ -25,7 +25,7 @@ React 18 + TypeScript + Vite frontend-only SPA. Dual-mode: `mock` (Zustand, no W
 
 ## Findings
 
-### Finding 1 — HIGH (9/10) · VERIFIED
+### Finding 1 — HIGH (9/10) · RESOLVED
 
 **TreasuryVault: Unrestricted drain via `withdraw()`**
 [contracts/src/TreasuryVault.sol:59](contracts/src/TreasuryVault.sol#L59)
@@ -58,7 +58,7 @@ function withdraw(uint256 amount) external {
 
 ---
 
-### Finding 2 — HIGH (10/10) · VERIFIED
+### Finding 2 — HIGH (10/10) · RESOLVED
 
 **PolicyEngine: No access control on any state-mutating function**
 [contracts/src/PolicyEngine.sol:42](contracts/src/PolicyEngine.sol#L42)
@@ -82,7 +82,7 @@ contract PolicyEngine is Ownable {
 
 ---
 
-### Finding 3 — MEDIUM (8/10) · VERIFIED
+### Finding 3 — MEDIUM (8/10) · RESOLVED
 
 **LedgerContract: Anyone can forge ledger entries**
 [contracts/src/LedgerContract.sol:19](contracts/src/LedgerContract.sol#L19)
@@ -95,7 +95,7 @@ contract PolicyEngine is Ownable {
 
 ---
 
-### Finding 4 — MEDIUM (8/10) · UNVERIFIED
+### Finding 4 — MEDIUM (8/10) · RESOLVED
 
 **Ed25519 signature malleability in WalletConnect relay auth**
 `app/package-lock.json` — CVE GHSA-x3ff-w252-2g7j
@@ -126,8 +126,8 @@ cd app && npm audit fix --force
 
 ## Recommended Additions
 
-- Add `.gitleaks.toml` to auto-catch secret commits
-- Set up GitHub Actions: `forge test` + `npm audit` + `npm run typecheck` on push
+- ✅ Add `.gitleaks.toml` to auto-catch secret commits
+- ✅ Set up GitHub Actions: `forge test` + `npm audit` + `npm run typecheck` on push
 
 ---
 
