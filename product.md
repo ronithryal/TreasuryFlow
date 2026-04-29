@@ -161,6 +161,18 @@ Current treasury operations (SAP, Oracle, NetSuite) are passive. They record wha
 - **Graceful Onboarding Escape**: Implemented a "non-intrusive" linking prompt via the TestnetSetupBanner, allowing users to explore the dashboard while connected with an unlinked wallet without being trapped in redirect loops.
 - `Web3Provider` conditionally mounted only when `IS_TESTNET=true` — zero wagmi overhead in mock build; all wagmi hooks live in sub-components (`TestnetHydrator`, `TestnetBannerContent`, `TestnetDecisionBar`) that never render outside `WagmiProvider`
 
+**Shipped (v0.3 — Revamped Demo: Provable Stablecoin Treasury Controls):**
+- **Onchain Payment Request Lifecycle**: Full request -> approve -> execute -> evidence flow on Base Sepolia.
+- **Contract-Enforced Maker-Checker**: IntentRegistry ensures makers cannot approve their own requests.
+- **PolicyEngine Validation**: Onchain enforcement of treasury guardrails for all executions.
+- **Registry-Only Vault Execution**: TreasuryVault only moves funds for registered and approved intents.
+- **Real mUSDC Recipient Transfer**: Actual token settlement to destination addresses.
+- **Audit Evidence Page**: Verifiable transaction proof with direct Basescan links for all state changes.
+- **Server-Side Demo Approver**: Automated second-signature simulation for a smooth demo experience.
+- **Honest Coming-Soon States**: Clear placeholders for CDP wallets, login, WalletConnect, and yield features.
+- **Finance-Language Cleanup**: Standardized terminology (“Payment Request,” “Activate Policy”) and USDC formatting.
+- **Mock Demo Preservation**: Separate mock environment preserved for consistent offline/seeded demos.
+
 **Verified:**
 - 28 unit tests (policy engine, approvals, execution, ledger, reconciliation)
 - 4 end-to-end demo scenarios (sweep, rebalance, payout batch, deposit routing)
@@ -282,6 +294,14 @@ Current treasury operations (SAP, Oracle, NetSuite) are passive. They record wha
 - Custody partnerships (Coinbase, Fidelity, Kraken)
 - White-glove compliance support
 - SLA guarantees (99.99% uptime, <1s settlement)
+
+## Strategic Product Roadmap
+
+- **Coinbase Business Integration**: Unified payouts, balances, recipients, and accounting sync.
+- **Ramp Integration**: Stablecoin-funded corporate spend, bill pay, physical/virtual cards, and direct ERP workflows.
+- **Circle Mint Integration**: Direct mint/redeem capabilities, role-based approval flows, granular reporting, and treasury APIs.
+- **OpenFX Module**: Cross-border FX routing for stablecoin-to-local-currency payouts (OpenFX-style).
+- **Verifiable AI/Audit Layer**: EigenCloud-style proving of offchain risk scoring and audit rationales.
 
 ## Metrics & Success
 

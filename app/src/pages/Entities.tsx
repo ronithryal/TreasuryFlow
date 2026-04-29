@@ -9,7 +9,6 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Money } from "@/components/shared/Money";
 import { Building2, Plus, Wallet, ChevronRight, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { fmtRelative, fmtDateAbs } from "@/lib/format";
 import { IS_TESTNET } from "@/web3/mode";
 import type { Account, Entity } from "@/types/domain";
 
@@ -115,12 +114,6 @@ function WalletDetailDrawer({
   if (!wallet) return null;
 
   const entityName = (id: string) => entities.find((e) => e.id === id)?.name ?? id;
-  const relatedPolicies = (acc: Account) =>
-    policies.filter((p) => p.sourceAccountIds.includes(acc.id) || p.destinationAccountIds.includes(acc.id));
-  const recentActivity = (acc: Account) =>
-    [...ledger.filter((l) => l.accountId === acc.id)]
-      .sort((a, b) => b.effectiveAt.localeCompare(a.effectiveAt))
-      .slice(0, 5);
 
   return (
     <DetailDrawer
