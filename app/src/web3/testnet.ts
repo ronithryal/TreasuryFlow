@@ -12,11 +12,21 @@ export const TESTNET_CHAIN = baseSepolia;
 
 const rawUsdc = (import.meta.env.VITE_MOCK_USDC_ADDRESS as string | undefined) ?? "";
 const rawVault = (import.meta.env.VITE_TREASURY_VAULT_ADDRESS as string | undefined) ?? "";
+const rawPolicyEngine = (import.meta.env.VITE_POLICY_ENGINE_ADDRESS as string | undefined) ?? "";
+const rawIntentRegistry = (import.meta.env.VITE_INTENT_REGISTRY_ADDRESS as string | undefined) ?? "";
+const rawLedgerContract = (import.meta.env.VITE_LEDGER_CONTRACT_ADDRESS as string | undefined) ?? "";
 
-export const MOCK_USDC_ADDRESS = (rawUsdc || "0x0000000000000000000000000000000000000000") as Address;
-export const TREASURY_VAULT_ADDRESS = (rawVault || "0x0000000000000000000000000000000000000000") as Address;
+// Deployed on Base Sepolia — used as fallbacks when env vars are not set.
+export const MOCK_USDC_ADDRESS = (rawUsdc || "0x576aAA911eC1caAd7F234F21b3607a98C9F669F2") as Address;
+export const TREASURY_VAULT_ADDRESS = (rawVault || "0xaCB7F3Da6cF6cC7Fe35e74B35477A3065172151A") as Address;
+export const POLICY_ENGINE_ADDRESS = (rawPolicyEngine || "0x01E0149639EB224CCc0557d3bd33b0FB05505a64") as Address;
+export const INTENT_REGISTRY_ADDRESS = (rawIntentRegistry || "0xf510c47823139B6819e4090d4583B518c66ee0d7") as Address;
+export const LEDGER_CONTRACT_ADDRESS = (rawLedgerContract || "0x20cF3fB0A14FEce0889f69e1243a9d9f78AC508b") as Address;
 
-export const TESTNET_CONFIGURED = !!rawUsdc && !!rawVault;
+export const TESTNET_CONFIGURED = true;
+export const POLICY_ENGINE_CONFIGURED = true;
+export const INTENT_REGISTRY_CONFIGURED = true;
+export const LEDGER_CONTRACT_CONFIGURED = true;
 
 export const MOCK_USDC_ABI = [
   { type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ name: "", type: "address" }], outputs: [{ name: "", type: "uint256" }] },
@@ -62,3 +72,46 @@ export function toUsdcUnits(amount: number): bigint {
 
 export const BASESCAN_TX = (hash: string) => `https://sepolia.basescan.org/tx/${hash}`;
 export const BASESCAN_ADDR = (addr: string) => `https://sepolia.basescan.org/address/${addr}`;
+
+export const POLICY_ENGINE_ABI = [
+  { type: "function", name: "createPolicy", stateMutability: "nonpayable",
+    inputs: [
+      { name: "name", type: "string" },
+      { name: "policyType", type: "string" },
+      { name: "source", type: "address" },
+      { name: "destination", type: "address" },
+      { name: "conditions", type: "string" },
+    ],
+    outputs: [{ name: "policyId", type: "uint256" }] },
+] as const;
+
+export const INTENT_REGISTRY_ABI = [
+  { type: "function", name: "nextIntentId", stateMutability: "view",
+    inputs: [], outputs: [{ name: "", type: "uint256" }] },
+  { type: "function", name: "createIntent", stateMutability: "nonpayable",
+    inputs: [
+      { name: "policyId", type: "uint256" },
+      { name: "amount", type: "uint256" },
+      { name: "destination", type: "address" },
+    ],
+    outputs: [{ name: "intentId", type: "uint256" }] },
+  { type: "function", name: "approveIntent", stateMutability: "nonpayable",
+    inputs: [{ name: "intentId", type: "uint256" }, { name: "approver", type: "address" }],
+    outputs: [] },
+  { type: "function", name: "executeIntent", stateMutability: "nonpayable",
+    inputs: [{ name: "intentId", type: "uint256" }, { name: "txHash", type: "bytes32" }],
+    outputs: [] },
+] as const;
+
+export const LEDGER_CONTRACT_ABI = [
+  { type: "function", name: "recordEntry", stateMutability: "nonpayable",
+    inputs: [
+      { name: "from", type: "address" },
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+      { name: "asset", type: "string" },
+      { name: "txHash", type: "bytes32" },
+      { name: "blockNumber", type: "uint256" },
+    ],
+    outputs: [] },
+] as const;

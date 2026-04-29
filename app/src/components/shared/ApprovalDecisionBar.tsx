@@ -116,15 +116,22 @@ function DecisionLayout({
         disabled={!canDecide}
       />
       {txHash ? (
-        <a
-          href={BASESCAN_TX(txHash)}
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-center gap-1 font-mono text-[11px] text-primary hover:underline"
-        >
-          tx {txHash.slice(0, 8)}…{txHash.slice(-6)}
-          <ExternalLink className="h-3 w-3" />
-        </a>
+        <div className="rounded-lg border border-chart-5/30 bg-chart-5/5 p-3 space-y-2">
+          <div className="flex items-center gap-2 text-xs font-medium text-chart-5">
+            <Check className="h-3.5 w-3.5" />
+            Transaction confirmed on Base Sepolia
+          </div>
+          <div className="font-mono text-[11px] text-muted-foreground break-all">{txHash}</div>
+          <a
+            href={BASESCAN_TX(txHash)}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 text-xs text-primary font-medium hover:underline"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            See Onchain Tx — BaseScan
+          </a>
+        </div>
       ) : null}
       <TooltipProvider>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">

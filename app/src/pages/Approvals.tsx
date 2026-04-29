@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertTriangle, Clock } from "lucide-react";
+import { IS_TESTNET } from "@/web3/mode";
 import { fmtRelative, fmtDateAbs, fmtTitle } from "@/lib/format";
 import { describeRiskFlag } from "@/domain/rules";
 import { explainIntent } from "@/services/ai-features";
@@ -133,12 +134,17 @@ export function Approvals() {
           description={selected.rationale.slice(0, 120)}
           footer={
             <ApprovalDecisionBar
-              canDecide={selected.requestedBy !== currentUserId}
+              canDecide={IS_TESTNET || selected.requestedBy !== currentUserId}
               reasonDisabled="You initiated this intent — a different approver must decide."
               intent={selected}
-              onDecision={({ decision, comment }) => {
+              onDecision={({ decision, comment, txHash }) => {
                 decideOnIntent(selected.id as IntentId, decision, comment);
-                setSelected(null);
+                if (!txHash) {
+                  // Mock mode: close drawer immediately after any decision.
+                  setSelected(null);
+                }
+                // Testnet mode: keep drawer open so the inline BaseScan tx link
+                // is visible. User dismisses the drawer manually.
               }}
             />
           }
@@ -186,6 +192,7 @@ export function Approvals() {
           </div>
         </DetailDrawer>
       )}
+
     </div>
   );
 }

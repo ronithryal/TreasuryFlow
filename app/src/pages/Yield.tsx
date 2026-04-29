@@ -1,46 +1,100 @@
+import { useState } from "react";
 import { useStore } from "@/store";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Money } from "@/components/shared/Money";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Zap, ShieldCheck, ArrowUpRight, TrendingUp, Landmark } from "lucide-react";
+import { Zap, ShieldCheck, ArrowUpRight, TrendingUp, Landmark, CheckCircle2, ExternalLink } from "lucide-react";
+import { BASESCAN_TX } from "@/web3/testnet";
+import { IS_TESTNET } from "@/web3/mode";
+import type { Account } from "@/types/domain";
 
-export function Yield() {
-  const accounts = useStore((s) => s.accounts.filter(a => a.name.toLowerCase().includes("morpho")));
-  
-  const OPPORTUNITIES = [
-    {
-      id: "morpho-usdc",
-      name: "Morpho Blue USDC Optimizer",
-      protocol: "Morpho",
-      apy: "8.42%",
-      risk: "Low",
-      tvl: "$420M",
-      description: "Non-custodial algorithmic optimization across Morpho Blue markets.",
-      status: "active"
-    },
-    {
-      id: "aave-usdc",
-      name: "Aave v3 USDC Pool",
-      protocol: "Aave",
-      apy: "5.12%",
-      risk: "Lowest",
-      tvl: "$2.1B",
-      description: "Direct supply to Aave v3 Ethereum markets. Instant liquidity.",
-      status: "available"
-    },
-    {
-      id: "sky-usds",
-      name: "Sky (Maker) USDS Savings",
-      protocol: "Sky",
-      apy: "6.00%",
-      risk: "Medium-Low",
-      tvl: "$1.2B",
-      description: "Onchain USDS savings rate with automated rebalancing.",
-      status: "available"
-    }
-  ];
+// ─── Shared opportunity list ─────────────────────────────────────────────────
 
+const OPPORTUNITIES = [
+  {
+    id: "morpho-usdc",
+    name: "Morpho Blue USDC Optimizer",
+    protocol: "Morpho",
+    apy: "8.42%",
+    risk: "Low",
+    tvl: "$420M",
+    description: "Non-custodial algorithmic optimization across Morpho Blue markets.",
+  },
+  {
+    id: "aave-usdc",
+    name: "Aave v3 USDC Pool",
+    protocol: "Aave",
+    apy: "5.12%",
+    risk: "Lowest",
+    tvl: "$2.1B",
+    description: "Direct supply to Aave v3 Ethereum markets. Instant liquidity.",
+  },
+  {
+    id: "sky-usds",
+    name: "Sky (Maker) USDS Savings",
+    protocol: "Sky",
+    apy: "6.00%",
+    risk: "Medium-Low",
+    tvl: "$1.2B",
+    description: "Onchain USDS savings rate with automated rebalancing.",
+  },
+];
+
+// ─── Tx popup (testnet only) ──────────────────────────────────────────────────
+
+function TxPopup({ hash, action, onClose }: { hash: string; action: string; onClose: () => void }) {
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="p-1.5 rounded-full bg-chart-5/10 text-chart-5">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <DialogTitle>Transaction Submitted</DialogTitle>
+          </div>
+          <DialogDescription>{action} submitted to Base Sepolia testnet.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="rounded-lg bg-muted/40 p-3 font-mono text-[11px] text-muted-foreground break-all">
+            {hash}
+          </div>
+          <a
+            href={BASESCAN_TX(hash)}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            View on BaseScan (Base Sepolia)
+          </a>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
+          <Button size="sm" asChild>
+            <a href={BASESCAN_TX(hash)} target="_blank" rel="noreferrer">
+              See Onchain Tx <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
+            </a>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Shared layout ────────────────────────────────────────────────────────────
+
+function YieldLayout({
+  accounts,
+  renderPositionFooter,
+  renderOpportunityFooter,
+}: {
+  accounts: Account[];
+  renderPositionFooter: (acc: Account) => React.ReactNode;
+  renderOpportunityFooter: (op: typeof OPPORTUNITIES[number]) => React.ReactNode;
+}) {
   return (
     <div className="space-y-6">
       {/* Active Positions */}
@@ -67,8 +121,7 @@ export function Yield() {
                 </div>
               </CardContent>
               <CardFooter className="pt-0 flex gap-2">
-                <Button variant="outline" size="sm" className="w-full text-xs h-8">Withdraw</Button>
-                <Button variant="default" size="sm" className="w-full text-xs h-8">Add Funds</Button>
+                {renderPositionFooter(acc)}
               </CardFooter>
             </Card>
           ))}
@@ -107,9 +160,7 @@ export function Yield() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {op.description}
-                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{op.description}</p>
                 <div className="flex items-center justify-between text-[11px] bg-muted/30 p-2 rounded-md">
                   <div className="flex items-center gap-1.5">
                     <ShieldCheck className="h-3 w-3 text-chart-5" />
@@ -123,14 +174,117 @@ export function Yield() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" className="w-full text-xs h-9 border-card-border hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all">
-                  Configure Deployment Policy
-                </Button>
+                {renderOpportunityFooter(op)}
               </CardFooter>
             </Card>
           ))}
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── Main export — delegates to testnet or mock variant ───────────────────────
+
+export function Yield() {
+  if (IS_TESTNET) return <TestnetYield />;
+  return <MockYield />;
+}
+
+// ─── Mock variant (no wagmi, no tx hashes) ───────────────────────────────────
+
+function MockYield() {
+  const accounts = useStore((s) => s.accounts.filter(a => a.name.toLowerCase().includes("morpho")));
+
+  return (
+    <YieldLayout
+      accounts={accounts}
+      renderPositionFooter={() => (
+        <>
+          <Button variant="outline" size="sm" className="w-full text-xs h-8">Withdraw</Button>
+          <Button variant="default" size="sm" className="w-full text-xs h-8">Add Funds</Button>
+        </>
+      )}
+      renderOpportunityFooter={() => (
+        <Button variant="outline" className="w-full text-xs h-9 border-card-border hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all">
+          Configure Deployment Policy
+        </Button>
+      )}
+    />
+  );
+}
+
+// ─── Testnet variant (wagmi hooks, real onchain execution) ────────────────────
+// Only rendered inside WagmiProvider — safe to use wagmi hooks here.
+
+import { useYieldExecution } from "@/web3/useYieldExecution";
+import React from "react";
+
+function TestnetYield() {
+  const accounts = useStore((s) => s.accounts.filter(a => a.name.toLowerCase().includes("morpho")));
+  const { executeWithdraw, executeAddFunds, executeDeployPolicy, isPending } = useYieldExecution();
+  const [txPopup, setTxPopup] = useState<{ hash: string; action: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run(label: string, fn: () => Promise<`0x${string}`>) {
+    setError(null);
+    try {
+      const hash = await fn();
+      setTxPopup({ hash, action: label });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  return (
+    <>
+      <YieldLayout
+        accounts={accounts}
+        renderPositionFooter={() => (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-xs h-8"
+              disabled={isPending}
+              onClick={() => run("Withdraw", executeWithdraw)}
+            >
+              {isPending ? "Confirm in Wallet…" : "Withdraw"}
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              className="w-full text-xs h-8"
+              disabled={isPending}
+              onClick={() => run("Add Funds", executeAddFunds)}
+            >
+              {isPending ? "Confirm in Wallet…" : "Add Funds"}
+            </Button>
+          </>
+        )}
+        renderOpportunityFooter={(op) => (
+          <Button
+            variant="outline"
+            className="w-full text-xs h-9 border-card-border hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all"
+            disabled={isPending}
+            onClick={() => run(`Deploy to ${op.name}`, () => executeDeployPolicy(op.name))}
+          >
+            {isPending ? "Confirm in Wallet…" : "Configure Deployment Policy"}
+          </Button>
+        )}
+      />
+
+      {error && (
+        <p className="mt-2 text-xs text-destructive">{error}</p>
+      )}
+
+      {txPopup && (
+        <TxPopup
+          hash={txPopup.hash}
+          action={txPopup.action}
+          onClose={() => setTxPopup(null)}
+        />
+      )}
+    </>
   );
 }
