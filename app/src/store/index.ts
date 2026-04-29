@@ -56,14 +56,31 @@ interface UiState {
  * connected wallet/balance/executions from here instead of the seed data.
  */
 export interface TestnetExecution {
+  /** App-layer intent ID (from Zustand seed). */
   intentId: string;
   policyId?: string;
+  /** Human-readable policy name, if resolved. */
+  policyName?: string;
   amount: number;
   destination: string;
   action: string;
+  /** Deprecated: use executionTxHash. Kept for backward compat. */
   txHash: string;
   blockNumber?: number;
   at: string;
+  // ── P0 golden path fields ─────────────────────────────────────────────────
+  /** The onchain intentId returned from IntentRegistry.createIntent (BigInt serialized as decimal string). */
+  onchainIntentId?: string;
+  /** The address that created the intent. */
+  initiator?: string;
+  /** The address that approved the intent (demo signer). */
+  approver?: string;
+  /** Tx hash of IntentRegistry.approveIntent. */
+  approvalTxHash?: string;
+  /** Tx hash of IntentRegistry.executeIntent (canonical audit hash). */
+  executionTxHash?: string;
+  /** Tx hash of MockUSDC.approve. */
+  approveTxHash?: string;
 }
 
 export interface TestnetState {

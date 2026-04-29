@@ -3,45 +3,122 @@ import { useAccount, usePublicClient, useWriteContract } from "wagmi";
 import {
   MOCK_USDC_ABI,
   MOCK_USDC_ADDRESS,
-  TREASURY_VAULT_ABI,
+  INTENT_REGISTRY_ABI,
+  INTENT_REGISTRY_ADDRESS,
   TREASURY_VAULT_ADDRESS,
+  DEFAULT_DEMO_POLICY_ID,
+  DEMO_POLICIES,
   toUsdcUnits,
 } from "./testnet";
 import { useStore } from "@/store";
 import type { Intent } from "@/types/domain";
 
+// A real demo recipient address on Base Sepolia — not a burn address.
+// This is the deployer/owner wallet (the same account that deployed the contracts).
+export const DEMO_RECIPIENT_ADDRESS =
+  "0x240fb77d1c6bbe72bb59a08b379c7d94e905839b" as const;
+
 /**
- * Two-step onchain execution: approve(USDC, vault, amount) then
- * vault.executePolicy(...). We call them sequentially and wait for the second
- * receipt before reporting success.
+ * P0 Golden Path — 4-step onchain flow for VITE_APP_MODE=testnet:
  *
- * The `intent.amount` is in "human" USDC units; this hook handles 6-decimal
- * conversion. Destination is informational on the vault — the vault actually
- * custodies the funds, the destination is logged so investors can see where
- * the policy intended to send the money.
+ *  Step 1:  IntentRegistry.createIntent(policyId, amount, destination)
+ *             → emits IntentCreated → read intentId from receipt
+ *  Step 2:  MockUSDC.approve(TreasuryVault, amount)
+ *             → authorises vault to pull tokens on executeIntent
+ *  Step 3:  POST /api/demo-approve { intentId, chainId: 84532 }
+ *             → server signs approveIntent(intentId) with DEMO_APPROVER_KEY
+ *             → returns { approvalTxHash, approverAddress }
+ *  Step 4:  IntentRegistry.executeIntent(intentId)
+ *             → vault re-validates policy, transfers tokens, emits PolicyExecuted
+ *             → receipt.transactionHash is the canonical audit proof
+ *
+ * No txHash is ever passed to a contract.
+ * No direct frontend call to approveIntent (server-only).
+ * No direct frontend call to LedgerContract (called by vault internally).
  */
 export function useTestnetExecution() {
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
   const recordExec = useStore((s) => s.recordTestnetExecution);
+
   const [isPending, setIsPending] = useState(false);
   const [lastTxHash, setLastTxHash] = useState<`0x${string}` | undefined>();
+  const [step, setStep] = useState<
+    "idle" | "creating" | "approving-usdc" | "demo-approver" | "executing" | "done" | "error"
+  >("idle");
+  const [stepError, setStepError] = useState<string | undefined>();
 
-  /** Returns the executePolicy tx hash on success, or throws. */
-  async function executeIntentOnchain(intent: Intent, action: string): Promise<`0x${string}`> {
-    if (!address) throw new Error("Wallet not connected");
+  /**
+   * Execute the full P0 golden path for a given intent.
+   * Returns the execution tx hash (Step 4) on success.
+   */
+  async function executeIntentOnchain(
+    intent: Intent,
+    action: string,
+    opts?: {
+      /** Override destination (default: DEMO_RECIPIENT_ADDRESS). */
+      destination?: `0x${string}`;
+      /** Override policyId (default: DEFAULT_DEMO_POLICY_ID). */
+      policyId?: bigint;
+    },
+  ): Promise<`0x${string}`> {
+    if (!address) throw new Error("Connect MetaMask or Coinbase Wallet on Base Sepolia.");
     if (!publicClient) throw new Error("RPC client unavailable");
 
     const amount = toUsdcUnits(intent.amount);
-    // Use a placeholder destination for now — the vault just records it.
-    // In a real build, intent.destinationAccountId would resolve to an
-    // onchain address on the receiving side.
-    const destination = "0x000000000000000000000000000000000000dEaD" as const;
+    const destination = opts?.destination ?? DEMO_RECIPIENT_ADDRESS;
+    const policyId = opts?.policyId ?? DEFAULT_DEMO_POLICY_ID;
+
+    // Resolve policy name for display
+    const policyName =
+      Object.values(DEMO_POLICIES).find((p) => p.id === policyId)?.name ?? `Policy #${policyId}`;
 
     setIsPending(true);
+    setStep("creating");
+    setStepError(undefined);
+
     try {
-      // 1) Approve the vault to pull USDC.
+      // ── Step 1: createIntent ─────────────────────────────────────────────
+      const createHash = await writeContractAsync({
+        abi: INTENT_REGISTRY_ABI,
+        address: INTENT_REGISTRY_ADDRESS,
+        functionName: "createIntent",
+        args: [policyId, amount, destination],
+      });
+      const createReceipt = await publicClient.waitForTransactionReceipt({ hash: createHash });
+
+      // Parse intentId from the IntentCreated event
+      let onchainIntentId: bigint | undefined;
+      for (const log of createReceipt.logs) {
+        try {
+          // IntentCreated(uint256 indexed intentId, uint256 indexed policyId, uint256 amount, address indexed destination, address initiator)
+          // topic[0] = keccak256("IntentCreated(uint256,uint256,uint256,address,address)")
+          // topic[1] = intentId (indexed)
+          if (log.topics.length >= 2 && log.topics[1] !== undefined) {
+            const candidate = BigInt(log.topics[1]);
+            if (candidate >= 0n) {
+              onchainIntentId = candidate;
+              break;
+            }
+          }
+        } catch {
+          // not this log
+        }
+      }
+
+      if (onchainIntentId === undefined) {
+        // Fallback: read nextIntentId - 1
+        const nextId = await publicClient.readContract({
+          abi: INTENT_REGISTRY_ABI,
+          address: INTENT_REGISTRY_ADDRESS,
+          functionName: "nextIntentId",
+        }) as bigint;
+        onchainIntentId = nextId - 1n;
+      }
+
+      // ── Step 2: approve mUSDC allowance ─────────────────────────────────
+      setStep("approving-usdc");
       const approveHash = await writeContractAsync({
         abi: MOCK_USDC_ABI,
         address: MOCK_USDC_ADDRESS,
@@ -50,32 +127,89 @@ export function useTestnetExecution() {
       });
       await publicClient.waitForTransactionReceipt({ hash: approveHash });
 
-      // 2) Execute the policy.
-      const execHash = await writeContractAsync({
-        abi: TREASURY_VAULT_ABI,
-        address: TREASURY_VAULT_ADDRESS,
-        functionName: "executePolicy",
-        args: [intent.policyId ?? intent.id, destination, amount, action],
+      // ── Step 3: demo approver (server-side) ──────────────────────────────
+      setStep("demo-approver");
+      const approveRes = await fetch("/api/demo-approve", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ intentId: onchainIntentId.toString(), chainId: 84532 }),
       });
-      const receipt = await publicClient.waitForTransactionReceipt({ hash: execHash });
-      setLastTxHash(execHash);
+      const approveData = await approveRes.json() as {
+        approvalTxHash?: string;
+        approverAddress?: string;
+        error?: string;
+      };
 
+      if (!approveRes.ok || !approveData.approvalTxHash) {
+        const msg = approveData.error ?? "Demo approver returned an unexpected error.";
+        throw new Error(`Demo approver failed: ${msg}`);
+      }
+
+      const approvalTxHash = approveData.approvalTxHash as `0x${string}`;
+      const approverAddress = approveData.approverAddress ?? "unknown";
+
+      // ── Step 4: executeIntent ────────────────────────────────────────────
+      setStep("executing");
+      const execHash = await writeContractAsync({
+        abi: INTENT_REGISTRY_ABI,
+        address: INTENT_REGISTRY_ADDRESS,
+        functionName: "executeIntent",
+        args: [onchainIntentId],
+      });
+      const execReceipt = await publicClient.waitForTransactionReceipt({ hash: execHash });
+
+      setLastTxHash(execHash);
+      setStep("done");
+
+      // Record in app state for Audit page
       recordExec({
         intentId: intent.id,
         policyId: intent.policyId,
+        policyName,
         amount: intent.amount,
         destination,
         action,
-        txHash: execHash,
-        blockNumber: Number(receipt.blockNumber),
+        txHash: execHash,                         // backward compat
+        blockNumber: Number(execReceipt.blockNumber),
         at: new Date().toISOString(),
+        // P0 golden path audit fields
+        onchainIntentId: onchainIntentId.toString(),
+        initiator: address,
+        approver: approverAddress,
+        approvalTxHash,
+        executionTxHash: execHash,
+        approveTxHash: approveHash,
       });
 
       return execHash;
+    } catch (err) {
+      setStep("error");
+      const msg = err instanceof Error ? err.message : String(err);
+      setStepError(msg);
+      throw err;
     } finally {
       setIsPending(false);
     }
   }
 
-  return { executeIntentOnchain, isPending, lastTxHash };
+  return {
+    executeIntentOnchain,
+    isPending,
+    lastTxHash,
+    /** Current step label for progress UI. */
+    step,
+    /** Error message if step === "error". */
+    stepError,
+  };
 }
+
+/** Human-readable label for each execution step (for progress UIs). */
+export const STEP_LABELS: Record<string, string> = {
+  idle: "Idle",
+  creating: "Step 1/4 — Creating Payment Request onchain…",
+  "approving-usdc": "Step 2/4 — Approving mUSDC allowance…",
+  "demo-approver": "Step 3/4 — Treasury Admin approving…",
+  executing: "Step 4/4 — Executing payment…",
+  done: "Executed",
+  error: "Error",
+};

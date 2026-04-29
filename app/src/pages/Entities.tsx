@@ -20,11 +20,195 @@ export function Entities() {
   return <MockEntities />;
 }
 
-// ─── Mock variant — original layout, no detail drawers ───────────────────────
+// ─── Shared Wallet Components & Dialog ──────────────────────────────────────
+
+function AddWalletDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (v: boolean) => void }) {
+  const [, navigate] = useLocation();
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md bg-card border-card-border">
+        <DialogHeader>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="p-2 rounded-xl bg-primary/10 text-primary">
+              <Zap className="h-5 w-5" />
+            </div>
+            <DialogTitle className="text-xl font-bold">Add Assigned Wallet</DialogTitle>
+          </div>
+          <DialogDescription className="text-muted-foreground">
+            Select a method to provision a new wallet for this entity.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 py-4">
+          {/* CDP Embedded Wallet Option */}
+          <div className="relative group opacity-60 grayscale cursor-not-allowed border border-border rounded-xl p-4 transition-all">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                  <Building2 className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm">Create Wallet</p>
+                  <p className="text-xs text-muted-foreground">Powered by CDP Embedded Wallets</p>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="pointer-events-auto h-7 text-[10px] uppercase font-bold tracking-widest bg-muted/50 border-border hover:bg-primary hover:text-primary-foreground transition-all"
+                onClick={() => { onOpenChange(false); navigate("/roadmap"); }}
+              >
+                Coming Soon
+              </Button>
+            </div>
+          </div>
+
+          {/* Wallet Connect Option */}
+          <div className="relative group opacity-60 grayscale cursor-not-allowed border border-border rounded-xl p-4 transition-all">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                  <Wallet className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm">Bring Wallet</p>
+                  <p className="text-xs text-muted-foreground">Via Wallet Connect</p>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="pointer-events-auto h-7 text-[10px] uppercase font-bold tracking-widest bg-muted/50 border-border hover:bg-primary hover:text-primary-foreground transition-all"
+                onClick={() => { onOpenChange(false); navigate("/roadmap"); }}
+              >
+                Coming Soon
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} className="text-xs">Cancel</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function WalletDetailDrawer({ 
+  wallet, 
+  onClose, 
+  entities, 
+  policies, 
+  ledger 
+}: { 
+  wallet: Account | null, 
+  onClose: () => void,
+  entities: Entity[],
+  policies: any[],
+  ledger: any[]
+}) {
+  if (!wallet) return null;
+
+  const entityName = (id: string) => entities.find((e) => e.id === id)?.name ?? id;
+  const relatedPolicies = (acc: Account) =>
+    policies.filter((p) => p.sourceAccountIds.includes(acc.id) || p.destinationAccountIds.includes(acc.id));
+  const recentActivity = (acc: Account) =>
+    [...ledger.filter((l) => l.accountId === acc.id)]
+      .sort((a, b) => b.effectiveAt.localeCompare(a.effectiveAt))
+      .slice(0, 5);
+
+  return (
+    <DetailDrawer
+      open={true}
+      onOpenChange={(v) => !v && onClose()}
+      title={wallet.name}
+      description={`${wallet.accountType.replace(/_/g, " ")} · ${wallet.chain} · ${entityName(wallet.entityId)}`}
+    >
+      <div className="space-y-5">
+        <div className="grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <span className="text-muted-foreground">Balance</span>
+            <p className="mt-0.5 text-lg font-semibold"><Money amount={wallet.balance} asset={wallet.asset} /></p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Available</span>
+            <p className="mt-0.5 text-lg font-semibold"><Money amount={wallet.availableBalance} asset={wallet.asset} /></p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Type</span>
+            <p className="mt-0.5"><AccountTypeBadge type={wallet.accountType} /></p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Chain</span>
+            <p className="mt-0.5"><ChainBadge chain={wallet.chain} /></p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Settlement rail</span>
+            <p className="mt-0.5 font-medium capitalize">{wallet.settlementRail}</p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Status</span>
+            <p className="mt-0.5"><StatusBadge status={wallet.status} /></p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Entity</span>
+            <p className="mt-0.5 font-medium">{entityName(wallet.entityId)}</p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Last updated</span>
+            <p className="mt-0.5 font-medium">{fmtDateAbs(wallet.lastUpdated)}</p>
+          </div>
+          {wallet.targetBand && (
+            <div className="col-span-2">
+              <span className="text-muted-foreground">Target band</span>
+              <p className="mt-0.5 font-medium">${wallet.targetBand.min.toLocaleString()} – ${wallet.targetBand.max.toLocaleString()}</p>
+            </div>
+          )}
+        </div>
+
+        {relatedPolicies(wallet).length > 0 && (
+          <div>
+            <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Related policies</h3>
+            {relatedPolicies(wallet).map((p) => (
+              <div key={p.id} className="flex items-center justify-between border-b border-card-border py-2 text-xs last:border-0">
+                <span className="font-medium">{p.name}</span>
+                <StatusBadge status={p.status} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {recentActivity(wallet).length > 0 && (
+          <div>
+            <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Recent activity</h3>
+            {recentActivity(wallet).map((entry) => (
+              <div key={entry.id} className="flex items-center justify-between border-b border-card-border py-2 text-xs last:border-0">
+                <div>
+                  <p className="font-medium">{entry.purpose ?? entry.direction}</p>
+                  <p className="text-muted-foreground">{fmtRelative(entry.effectiveAt)}</p>
+                </div>
+                <Money amount={entry.amount} asset={entry.asset} signed={entry.direction === "outflow"} />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </DetailDrawer>
+  );
+}
+
+// ─── Mock variant ────────────────────────────────────────────────────────────
 
 function MockEntities() {
   const entities = useStore((s) => s.entities);
   const accounts = useStore((s) => s.accounts);
+  const policies = useStore((s) => s.policies);
+  const ledger = useStore((s) => s.ledger);
+  
+  const [selectedWallet, setSelectedWallet] = useState<Account | null>(null);
+  const [addWalletOpen, setAddWalletOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -68,7 +252,12 @@ function MockEntities() {
                     </div>
 
                     {entityBalance === 0 && (
-                      <Button variant="outline" size="sm" className="w-full mt-4 bg-primary/5 border-primary/20 text-primary hover:bg-primary/10 gap-2 text-[10px] uppercase font-bold tracking-widest">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full mt-4 bg-primary/5 border-primary/20 text-primary hover:bg-primary/10 gap-2 text-[10px] uppercase font-bold tracking-widest"
+                        onClick={() => setAddWalletOpen(true)}
+                      >
                         <Plus className="h-3 w-3" /> Provision CDP Wallet
                       </Button>
                     )}
@@ -76,10 +265,25 @@ function MockEntities() {
                 </div>
 
                 <div className="flex-1 p-6 space-y-4 bg-card">
-                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Assigned Wallets</h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Assigned Wallets</h4>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                      onClick={() => setAddWalletOpen(true)}
+                      title="Add wallet"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                   <div className="grid gap-2">
                     {entityAccounts.map(acc => (
-                      <div key={acc.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors cursor-pointer group/row">
+                      <div 
+                        key={acc.id} 
+                        className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors cursor-pointer group/row"
+                        onClick={() => setSelectedWallet(acc)}
+                      >
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
                             <Wallet className="h-4 w-4" />
@@ -108,30 +312,30 @@ function MockEntities() {
           );
         })}
       </div>
+
+      <WalletDetailDrawer 
+        wallet={selectedWallet} 
+        onClose={() => setSelectedWallet(null)} 
+        entities={entities}
+        policies={policies}
+        ledger={ledger}
+      />
+      
+      <AddWalletDialog open={addWalletOpen} onOpenChange={setAddWalletOpen} />
     </div>
   );
 }
 
-// ─── Testnet variant — wallet/entity detail drawers + add-wallet dialog ───────
+// ─── Testnet variant ─────────────────────────────────────────────────────────
 
 function TestnetEntities() {
   const entities = useStore((s) => s.entities);
   const accounts = useStore((s) => s.accounts);
   const policies = useStore((s) => s.policies);
   const ledger = useStore((s) => s.ledger);
-  const [, navigate] = useLocation();
-
   const [selectedWallet, setSelectedWallet] = useState<Account | null>(null);
   const [selectedEntity, setSelectedEntity] = useState<Entity | null>(null);
   const [addWalletOpen, setAddWalletOpen] = useState(false);
-
-  const entityName = (id: string) => entities.find((e) => e.id === id)?.name ?? id;
-  const relatedPolicies = (acc: Account) =>
-    policies.filter((p) => p.sourceAccountIds.includes(acc.id) || p.destinationAccountIds.includes(acc.id));
-  const recentActivity = (acc: Account) =>
-    [...ledger.filter((l) => l.accountId === acc.id)]
-      .sort((a, b) => b.effectiveAt.localeCompare(a.effectiveAt))
-      .slice(0, 5);
 
   const selectedEntityAccounts = selectedEntity
     ? accounts.filter((a) => a.entityId === selectedEntity.id)
@@ -188,7 +392,7 @@ function TestnetEntities() {
                         variant="outline"
                         size="sm"
                         className="w-full mt-4 bg-primary/5 border-primary/20 text-primary hover:bg-primary/10 gap-2 text-[10px] uppercase font-bold tracking-widest"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => { e.stopPropagation(); setAddWalletOpen(true); }}
                       >
                         <Plus className="h-3 w-3" /> Provision CDP Wallet
                       </Button>
@@ -246,85 +450,13 @@ function TestnetEntities() {
         })}
       </div>
 
-      {/* Wallet Detail Drawer — same layout as Accounts page */}
-      {selectedWallet && (
-        <DetailDrawer
-          open={true}
-          onOpenChange={(v) => !v && setSelectedWallet(null)}
-          title={selectedWallet.name}
-          description={`${selectedWallet.accountType.replace(/_/g, " ")} · ${selectedWallet.chain} · ${entityName(selectedWallet.entityId)}`}
-        >
-          <div className="space-y-5">
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div>
-                <span className="text-muted-foreground">Balance</span>
-                <p className="mt-0.5 text-lg font-semibold"><Money amount={selectedWallet.balance} asset={selectedWallet.asset} /></p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Available</span>
-                <p className="mt-0.5 text-lg font-semibold"><Money amount={selectedWallet.availableBalance} asset={selectedWallet.asset} /></p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Type</span>
-                <p className="mt-0.5"><AccountTypeBadge type={selectedWallet.accountType} /></p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Chain</span>
-                <p className="mt-0.5"><ChainBadge chain={selectedWallet.chain} /></p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Settlement rail</span>
-                <p className="mt-0.5 font-medium capitalize">{selectedWallet.settlementRail}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Status</span>
-                <p className="mt-0.5"><StatusBadge status={selectedWallet.status} /></p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Entity</span>
-                <p className="mt-0.5 font-medium">{entityName(selectedWallet.entityId)}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Last updated</span>
-                <p className="mt-0.5 font-medium">{fmtDateAbs(selectedWallet.lastUpdated)}</p>
-              </div>
-              {selectedWallet.targetBand && (
-                <div className="col-span-2">
-                  <span className="text-muted-foreground">Target band</span>
-                  <p className="mt-0.5 font-medium">${selectedWallet.targetBand.min.toLocaleString()} – ${selectedWallet.targetBand.max.toLocaleString()}</p>
-                </div>
-              )}
-            </div>
-
-            {relatedPolicies(selectedWallet).length > 0 && (
-              <div>
-                <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Related policies</h3>
-                {relatedPolicies(selectedWallet).map((p) => (
-                  <div key={p.id} className="flex items-center justify-between border-b border-card-border py-2 text-xs last:border-0">
-                    <span className="font-medium">{p.name}</span>
-                    <StatusBadge status={p.status} />
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {recentActivity(selectedWallet).length > 0 && (
-              <div>
-                <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Recent activity</h3>
-                {recentActivity(selectedWallet).map((entry) => (
-                  <div key={entry.id} className="flex items-center justify-between border-b border-card-border py-2 text-xs last:border-0">
-                    <div>
-                      <p className="font-medium">{entry.purpose ?? entry.direction}</p>
-                      <p className="text-muted-foreground">{fmtRelative(entry.effectiveAt)}</p>
-                    </div>
-                    <Money amount={entry.amount} asset={entry.asset} signed={entry.direction === "outflow"} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </DetailDrawer>
-      )}
+      <WalletDetailDrawer 
+        wallet={selectedWallet} 
+        onClose={() => setSelectedWallet(null)} 
+        entities={entities}
+        policies={policies}
+        ledger={ledger}
+      />
 
       {/* Entity Detail Drawer */}
       {selectedEntity && (
@@ -399,34 +531,7 @@ function TestnetEntities() {
         </DetailDrawer>
       )}
 
-      {/* Add Wallet — Coming Soon Dialog */}
-      <Dialog open={addWalletOpen} onOpenChange={setAddWalletOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <div className="flex items-center gap-2 mb-1">
-              <div className="p-1.5 rounded-full bg-primary/10 text-primary">
-                <Zap className="h-5 w-5" />
-              </div>
-              <DialogTitle>Add Wallet</DialogTitle>
-            </div>
-            <DialogDescription>
-              Embedded wallets and Wallet Connect are coming soon.
-            </DialogDescription>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            We're building seamless wallet provisioning directly within TreasuryFlow — including embedded wallets for instant setup and WalletConnect support for your existing hardware and software signers.
-          </p>
-          <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" size="sm" onClick={() => setAddWalletOpen(false)}>Close</Button>
-            <Button
-              size="sm"
-              onClick={() => { setAddWalletOpen(false); navigate("/roadmap"); }}
-            >
-              Learn More
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddWalletDialog open={addWalletOpen} onOpenChange={setAddWalletOpen} />
     </div>
   );
 }
