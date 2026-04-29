@@ -120,6 +120,34 @@ npm run test        # Runs 28+ unit tests (100% domain coverage)
 
 ---
 
+## 🚀 Deployment
+
+### Live Demos
+
+**TreasuryFlow is deployed on Vercel:**
+
+- **Mock Demo** (No wallet required): https://treasuryflow-mock.vercel.app
+- **Testnet Demo** (Base Sepolia): https://treasuryflow-testnet.vercel.app
+
+### Deploy Your Own
+
+1. Clone this repository and push to GitHub
+2. Connect your GitHub repo to [Vercel](https://vercel.com)
+3. Set environment variables in Vercel Project Settings:
+   ```
+   VITE_APP_MODE=mock       # or "testnet"
+   VITE_PERPLEXITY_API_KEY=your_key  # Optional (uses mock fallback if not set)
+   ```
+4. Deploy with `vercel deploy` or via the Vercel Dashboard
+
+**For Testnet Demo Users:**
+- Connect a Web3 wallet (MetaMask, Coinbase Wallet, Rainbow, or WalletConnect-compatible)
+- Add Base Sepolia (Chain ID 84532) to your wallet
+- Request Base Sepolia ETH from the [Base Faucet](https://faucet.base.org)
+- Use the MockUSDC faucet in the app to mint 100k testnet USDC
+
+---
+
 ## 📅 Roadmap
 
 ### Phase 1: MVP Demo (Current)
