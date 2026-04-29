@@ -53,6 +53,7 @@ export const PolicyTypes = [
   "payout_run",
   "deposit_routing",
   "cash_out",
+  "cross_border_sweep",
 ] as const;
 export type PolicyType = (typeof PolicyTypes)[number];
 
@@ -66,6 +67,7 @@ export const IntentTypes = [
   "deposit_route",
   "cash_out",
   "manual_transfer",
+  "cross_border_sweep",
 ] as const;
 export type IntentType = (typeof IntentTypes)[number];
 

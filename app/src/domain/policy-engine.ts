@@ -55,10 +55,19 @@ export function evaluatePolicy(policy: Policy, snap: WorldSnapshot, opts: Evalua
       return evalDepositRouting(policy, snap, opts);
     case "cash_out":
       return evalCashOut(policy, snap, opts);
+    case "cross_border_sweep":
+      return evalCrossBorderSweep(policy, snap, opts);
+    default:
+      return { intents: [], noopReasons: ["unsupported policy type"] };
   }
 }
 
 // -----------------
+// Stub for the new cross_border_sweep type
+function evalCrossBorderSweep(_policy: Policy, _snap: WorldSnapshot, _opts: EvaluateOpts): EvaluateResult {
+  return { intents: [], noopReasons: ["cross_border_sweep not fully implemented yet"] };
+}
+
 function buildIntent(
   partial: Partial<Intent> & {
     type: Intent["type"];
