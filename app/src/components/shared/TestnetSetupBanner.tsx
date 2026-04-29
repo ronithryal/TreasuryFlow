@@ -16,8 +16,9 @@ import { useState } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Coins, ExternalLink, Wallet, CheckCircle2 } from "lucide-react";
+import { Coins, ExternalLink, Wallet, CheckCircle2, ShieldAlert } from "lucide-react";
 import { useStore } from "@/store";
+import { Link } from "wouter";
 import {
   BASESCAN_TX,
   MOCK_USDC_ABI,
@@ -29,8 +30,11 @@ const MINT_AMOUNT = 100_000;
 
 function TestnetBannerContent() {
   const { address, isConnected } = useAccount();
-  const usdcBalance = useStore((s) => s.testnet.usdcBalance);
-  const hydrated = useStore((s) => s.testnet.hydrated);
+  const { usdcBalance, hydrated, accounts } = useStore((s) => ({
+    usdcBalance: s.testnet.usdcBalance,
+    hydrated: s.testnet.hydrated,
+    accounts: s.accounts,
+  }));
 
   const { writeContractAsync, isPending: isMinting } = useWriteContract();
   const [pendingHash, setPendingHash] = useState<`0x${string}` | undefined>();
@@ -67,6 +71,32 @@ function TestnetBannerContent() {
             </p>
           </div>
         </CardHeader>
+      </Card>
+    );
+  }
+
+  const isLinked = accounts.some((a) => a.address?.toLowerCase() === address?.toLowerCase());
+
+  if (!isLinked) {
+    return (
+      <Card className="border-amber-500/30 bg-amber-500/5 shadow-sm">
+        <CardContent className="flex items-center justify-between py-3 text-xs">
+          <div className="flex items-center gap-3">
+            <div className="rounded-full bg-amber-500/10 p-1.5 text-amber-500">
+              <ShieldAlert className="h-4 w-4" />
+            </div>
+            <div>
+              <span className="font-bold text-amber-600">Sovereign Wallet Detected</span>
+              <p className="text-[10px] text-muted-foreground">This address is not yet linked to an entity in your treasury.</p>
+            </div>
+          </div>
+          <Link href="/onboarding/unlinked">
+            <Button size="sm" variant="outline" className="h-8 text-[11px] font-bold border-amber-500/30 text-amber-600 hover:bg-amber-500/10 gap-2">
+              Link to Entity
+              <ExternalLink className="h-3 w-3" />
+            </Button>
+          </Link>
+        </CardContent>
       </Card>
     );
   }

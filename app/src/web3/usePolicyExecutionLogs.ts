@@ -8,6 +8,7 @@ import {
   BASESCAN_TX,
   DEMO_POLICIES,
   formatUsdc,
+  DEPLOYMENT_BLOCK,
 } from "./testnet";
 import { IS_TESTNET } from "./mode";
 import { useStore } from "@/store";
@@ -129,7 +130,7 @@ export function usePolicyExecutionLogs() {
             ? publicClient.getLogs({
                 address: INTENT_REGISTRY_ADDRESS,
                 event: intentExecutedEvent,
-                fromBlock: "earliest",
+                fromBlock: DEPLOYMENT_BLOCK,
                 toBlock: "latest",
               })
             : Promise.resolve([]),
@@ -137,7 +138,7 @@ export function usePolicyExecutionLogs() {
             ? publicClient.getLogs({
                 address: TREASURY_VAULT_ADDRESS,
                 event: policyExecutedEvent,
-                fromBlock: "earliest",
+                fromBlock: DEPLOYMENT_BLOCK,
                 toBlock: "latest",
               })
             : Promise.resolve([]),
@@ -226,7 +227,37 @@ export function usePolicyExecutionLogs() {
         merged.sort((a, b) => Number(b.blockNumber) - Number(a.blockNumber));
         setLogs(merged);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+        if (!cancelled) {
+          // If Alchemy range limit error, don't show it as a scary error in the UI.
+          // Instead, we just fall back to the stored executions we already have.
+          const msg = err instanceof Error ? err.message : String(err);
+          const isRangeError = msg.includes("block range") || msg.includes("Free tier");
+          
+          if (isRangeError) {
+            console.warn("Audit logs: RPC block range limit hit. Falling back to local stored executions for demo consistency.");
+            // We already have stored executions, so we just build the list from them.
+            const fallbackLogs = storedExecutions
+              .filter((e) => e.executionTxHash)
+              .map<IntentExecutionLog>((e) => ({
+                intentId: e.onchainIntentId ?? "—",
+                policyId: e.policyId ?? "—",
+                policyName: e.policyName ?? (e.policyId ? policyName(e.policyId) : "—"),
+                initiator: (e.initiator as `0x${string}`) ?? "—",
+                approver: e.approver ?? "Approved by Treasury Admin demo signer",
+                destination: e.destination as `0x${string}`,
+                amount: e.amount,
+                approvalTxHash: e.approvalTxHash ?? "",
+                executionTxHash: (e.executionTxHash ?? e.txHash) as `0x${string}`,
+                blockNumber: BigInt(e.blockNumber ?? 0),
+                timestamp: Math.floor(new Date(e.at).getTime() / 1000),
+                approvalUrl: e.approvalTxHash ? BASESCAN_TX(e.approvalTxHash) : "",
+                executionUrl: BASESCAN_TX(e.executionTxHash ?? e.txHash),
+              }));
+            setLogs(fallbackLogs.sort((a, b) => Number(b.blockNumber) - Number(a.blockNumber)));
+          } else {
+            setError(msg);
+          }
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }

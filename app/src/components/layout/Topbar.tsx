@@ -11,14 +11,42 @@ import {
 import { Button } from "@/components/ui/button";
 import { ChevronDown, User } from "lucide-react";
 import type { UserId } from "@/types/domain";
+import { useAccount, useDisconnect } from "wagmi";
+import { useWeb3Modal } from "@web3modal/wagmi/react";
+import { web3Modal } from "@/web3/Web3Provider";
+import { useLocation } from "wouter";
+import { useEffect, useRef } from "react";
 
 export function Topbar({ title, subtitle }: { title: string; subtitle?: string }) {
-  const { currentUserId, users, setCurrentUser } = useStore((s) => ({
+  const { currentUserId, users, setCurrentUser, accounts } = useStore((s) => ({
     currentUserId: s.currentUserId,
     users: s.users,
     setCurrentUser: s.setCurrentUser,
+    accounts: s.accounts,
   }));
   const currentUser = users.find((u) => u.id === currentUserId);
+  
+  const { isConnected, address } = useAccount();
+  const modalHook = useWeb3Modal();
+  const { disconnect } = useDisconnect();
+  const [, setLocation] = useLocation();
+  const prevAddress = useRef<string | null>(null);
+
+  const handleConnect = () => {
+    // Priority 1: Use the hook's open function
+    if (modalHook && typeof modalHook.open === 'function') {
+      modalHook.open();
+    } 
+    // Priority 2: Use the exported instance's open function (fallback for hook issues)
+    else if (web3Modal && typeof web3Modal.open === 'function') {
+      web3Modal.open();
+    }
+    else {
+      console.error("Web3Modal initialization failed - both hook and instance are unavailable");
+    }
+  };
+
+  const shortenAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-border bg-card px-6">
@@ -29,7 +57,34 @@ export function Topbar({ title, subtitle }: { title: string; subtitle?: string }
       <div className="flex items-center gap-3">
         {/* Web3Modal button */}
         <div id="wallet-status" data-tour="wallet-status">
-          <w3m-button />
+          {isConnected && address ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 bg-primary/5 border-primary/20 hover:bg-primary/10">
+                  <div className="h-2 w-2 rounded-full bg-chart-5" />
+                  <span className="text-xs font-mono">{shortenAddress(address)}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Connected Wallet</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => handleConnect()}>
+                  Wallet Details
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => disconnect()} className="text-destructive">
+                  Disconnect
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button 
+              size="sm" 
+              onClick={() => handleConnect()}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-4"
+            >
+              Connect Wallet
+            </Button>
+          )}
         </div>
         {/* User switcher (maker-checker demo) */}
         <DropdownMenu>

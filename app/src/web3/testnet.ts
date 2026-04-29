@@ -26,6 +26,10 @@ export const LEDGER_CONTRACT_ADDRESS   = (rawLedgerContract || "0x7e97006ccaf305
 export const TREASURY_VAULT_ADDRESS    = (rawVault          || "0x5f88f257cd264d0cfb2844debc8ea04406be8a1d") as Address;
 export const INTENT_REGISTRY_ADDRESS   = (rawIntentRegistry || "0x53eb4406785aa86b64c662102745fc85cf93d459") as Address;
 
+// The block number when the P0 refactor contracts were deployed to Base Sepolia.
+// Using this as fromBlock for logs prevents Alchemy free tier range errors.
+export const DEPLOYMENT_BLOCK = 40834374n;
+
 export const TESTNET_CONFIGURED          = true;
 export const POLICY_ENGINE_CONFIGURED    = true;
 export const INTENT_REGISTRY_CONFIGURED  = true;

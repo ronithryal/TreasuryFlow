@@ -143,6 +143,11 @@ Current treasury operations (SAP, Oracle, NetSuite) are passive. They record wha
 - Morpho Yield integration flow
 - 5 advanced AI features (Anomaly detection, Risk scoring, Market shock insights, Predictive forecasting, Audit rationales)
 - 7 comprehensive demo scenarios
+- **Intelligent Onboarding**: Sovereign wallet detection with automated deep-linking and multi-entity registration flow.
+- **Purpose-driven UX**: Descriptive account labeling to track operational roles (e.g. "Main Reserve", "Payroll").
+- **Unified Account Management**: Single source of truth for wallet details, synchronized across Entity and Account views.
+- **KPI Synchronization**: Real-time mirroring of onchain balances into top-level dashboard metrics (Total Managed, Operating Liquidity).
+- **Safe Wallet Lifecycle**: Protected deletion workflow that prevents orphan state while allowing cleanup of zero-balance test wallets.
 
 **Shipped (v0.2 — dual-demo testnet architecture):**
 - `VITE_APP_MODE` feature flag: single `main` branch powers two Vercel deploys (mock demo + testnet demo) with zero code divergence
@@ -152,7 +157,9 @@ Current treasury operations (SAP, Oracle, NetSuite) are passive. They record wha
 - `TestnetSetupBanner`: connect-wallet → mint 100k mUSDC onboarding flow with block-confirmation feedback and Basescan tx link
 - `ApprovalDecisionBar`: testnet path runs `approve(USDC, vault, amount)` then `vault.executePolicy(...)` two-step before resolving intent in Zustand; mock path is pure Zustand
 - Audit page (`/audit`): testnet mode queries `PolicyExecuted` logs via `getLogs` filtered by wallet address, renders live feed with Basescan deeplinks — proving to investors that real tokens moved; mock mode unchanged
-- `Web3Provider` conditionally mounted only when `IS_TESTNET=true` — zero wagmi overhead in mock demo; all wagmi hooks live in sub-components (`TestnetHydrator`, `TestnetBannerContent`, `TestnetDecisionBar`) that never render outside `WagmiProvider`
+- **Sovereign Wallet Interceptor**: Global watcher that intelligently routes connected wallets—deep-linking known accounts and triggering specialized onboarding for unrecognized addresses.
+- **Graceful Onboarding Escape**: Implemented a "non-intrusive" linking prompt via the TestnetSetupBanner, allowing users to explore the dashboard while connected with an unlinked wallet without being trapped in redirect loops.
+- `Web3Provider` conditionally mounted only when `IS_TESTNET=true` — zero wagmi overhead in mock build; all wagmi hooks live in sub-components (`TestnetHydrator`, `TestnetBannerContent`, `TestnetDecisionBar`) that never render outside `WagmiProvider`
 
 **Verified:**
 - 28 unit tests (policy engine, approvals, execution, ledger, reconciliation)

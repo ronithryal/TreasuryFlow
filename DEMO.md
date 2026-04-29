@@ -13,7 +13,10 @@ This guide walks you through the **P0 Golden Path** — the end-to-end, cryptogr
 ## The Golden Path
 
 ### 1. Onboard
-- Open the Testnet Demo.
+- **Open the Testnet Demo**:
+    - Run `cd app && npm run dev` in your terminal.
+    - Open `http://localhost:5173` in your browser.
+    - Confirm the blue/gradient setup banner appears at the top (this verifies your `.env.local` is correctly configured for Testnet Mode).
 - Click **Connect Wallet** in the top-right and connect your Base Sepolia account.
 - Click **Mint 100,000 mUSDC** on the setup banner. This provides the "Digital Dollars" used for the demo.
 

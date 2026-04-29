@@ -83,6 +83,7 @@ const accounts: Account[] = [
     settlementRail: "onchain",
     tags: ["primary-ops"],
     lastUpdated: offsetIso(2),
+    description: "Primary operational wallet for daily business expenses and vendor payments.",
     targetBand: { min: 25_000, max: 125_000 },
   },
   {
@@ -98,6 +99,7 @@ const accounts: Account[] = [
     settlementRail: "onchain",
     tags: ["payouts"],
     lastUpdated: offsetIso(3),
+    description: "Dedicated wallet for high-volume vendor payouts and contractor settlements.",
     targetBand: { min: 25_000, max: 75_000 },
   },
   {
@@ -113,6 +115,8 @@ const accounts: Account[] = [
     settlementRail: "onchain",
     tags: ["reserve"],
     lastUpdated: offsetIso(2),
+    description: "Non-custodial reserve vault on Base Sepolia. Controlled via onchain policy agents.",
+    address: "0x5f88f257cd264d0cfb2844debc8ea04406be8a1d" as `0x${string}`,
   },
   {
     id: ACC_ETH_RESERVE,
@@ -127,6 +131,7 @@ const accounts: Account[] = [
     settlementRail: "onchain",
     tags: ["reserve", "long-term"],
     lastUpdated: offsetIso(8),
+    description: "Main treasury reserve on Ethereum Mainnet for deep liquidity and cold storage.",
   },
   {
     id: ACC_POLY_REFUNDS,
@@ -141,7 +146,8 @@ const accounts: Account[] = [
     settlementRail: "onchain",
     tags: ["refunds"],
     lastUpdated: offsetIso(1),
-    targetBand: { min: 25_000, max: 50_000 },
+    description: "Dedicated account for payroll disbursements and contractor settlement.",
+    targetBand: { min: 50_000, max: 150_000 },
   },
   {
     id: ACC_COLLECT_A,
@@ -156,6 +162,7 @@ const accounts: Account[] = [
     settlementRail: "onchain",
     tags: ["customer-receipts"],
     lastUpdated: offsetIso(0.5),
+    description: "Inbound collection address for EU customer receipts. Automatically swept to operating.",
   },
   {
     id: ACC_COLLECT_B,
@@ -170,6 +177,7 @@ const accounts: Account[] = [
     settlementRail: "onchain",
     tags: ["customer-receipts"],
     lastUpdated: offsetIso(20),
+    description: "Inbound collection address for US customer receipts. Monitored for AML compliance.",
   },
   {
     id: ACC_USDC_CUSTODY,
@@ -184,6 +192,7 @@ const accounts: Account[] = [
     settlementRail: "onchain",
     tags: ["custody"],
     lastUpdated: offsetIso(72),
+    description: "Cold storage custody account for long-term capital preservation.",
   },
   {
     id: ACC_BANK_ACH,
@@ -198,6 +207,7 @@ const accounts: Account[] = [
     settlementRail: "bank",
     tags: ["partner-bank"],
     lastUpdated: offsetIso(48),
+    description: "Traditional bank destination for ACH settlements and payroll funding.",
   },
   {
     id: ACC_BANK_WIRE,
@@ -212,6 +222,7 @@ const accounts: Account[] = [
     settlementRail: "bank",
     tags: ["partner-bank", "international"],
     lastUpdated: offsetIso(120),
+    description: "Offshore bank account for international wire settlements and subsidiary funding.",
   },
 ];
 

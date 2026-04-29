@@ -14,7 +14,7 @@ const metadata = {
 };
 
 // Initialize AppKit (formerly Web3Modal) — supports WalletConnect + CDP Embedded Wallets
-createWeb3Modal({
+export const web3Modal = createWeb3Modal({
   wagmiConfig: wagmiConfig as any,
   projectId,
   metadata,

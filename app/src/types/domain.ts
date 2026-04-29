@@ -146,6 +146,10 @@ export interface Account {
   settlementRail: SettlementRail;
   tags: string[];
   lastUpdated: string;
+  /** The onchain address for this wallet (if applicable) */
+  address?: `0x${string}`;
+  /** Purpose/Description of the wallet */
+  description?: string;
   /** Optional per-account band used by liquidity health visuals. */
   targetBand?: { min: number; max: number };
 }

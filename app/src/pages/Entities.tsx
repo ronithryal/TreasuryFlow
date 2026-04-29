@@ -4,9 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { DetailDrawer } from "@/components/shared/DetailDrawer";
+import { AccountDetailView } from "@/components/shared/AccountDetailView";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { ChainBadge } from "@/components/shared/ChainBadge";
-import { AccountTypeBadge } from "@/components/shared/AccountTypeBadge";
 import { Money } from "@/components/shared/Money";
 import { Building2, Plus, Wallet, ChevronRight, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -103,13 +102,15 @@ function WalletDetailDrawer({
   onClose, 
   entities, 
   policies, 
-  ledger 
+  ledger,
+  onDelete
 }: { 
   wallet: Account | null, 
   onClose: () => void,
   entities: Entity[],
   policies: any[],
-  ledger: any[]
+  ledger: any[],
+  onDelete?: (id: string) => void
 }) {
   if (!wallet) return null;
 
@@ -128,75 +129,13 @@ function WalletDetailDrawer({
       title={wallet.name}
       description={`${wallet.accountType.replace(/_/g, " ")} · ${wallet.chain} · ${entityName(wallet.entityId)}`}
     >
-      <div className="space-y-5">
-        <div className="grid grid-cols-2 gap-3 text-xs">
-          <div>
-            <span className="text-muted-foreground">Balance</span>
-            <p className="mt-0.5 text-lg font-semibold"><Money amount={wallet.balance} asset={wallet.asset} /></p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Available</span>
-            <p className="mt-0.5 text-lg font-semibold"><Money amount={wallet.availableBalance} asset={wallet.asset} /></p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Type</span>
-            <p className="mt-0.5"><AccountTypeBadge type={wallet.accountType} /></p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Chain</span>
-            <p className="mt-0.5"><ChainBadge chain={wallet.chain} /></p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Settlement rail</span>
-            <p className="mt-0.5 font-medium capitalize">{wallet.settlementRail}</p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Status</span>
-            <p className="mt-0.5"><StatusBadge status={wallet.status} /></p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Entity</span>
-            <p className="mt-0.5 font-medium">{entityName(wallet.entityId)}</p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Last updated</span>
-            <p className="mt-0.5 font-medium">{fmtDateAbs(wallet.lastUpdated)}</p>
-          </div>
-          {wallet.targetBand && (
-            <div className="col-span-2">
-              <span className="text-muted-foreground">Target band</span>
-              <p className="mt-0.5 font-medium">${wallet.targetBand.min.toLocaleString()} – ${wallet.targetBand.max.toLocaleString()}</p>
-            </div>
-          )}
-        </div>
-
-        {relatedPolicies(wallet).length > 0 && (
-          <div>
-            <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Related policies</h3>
-            {relatedPolicies(wallet).map((p) => (
-              <div key={p.id} className="flex items-center justify-between border-b border-card-border py-2 text-xs last:border-0">
-                <span className="font-medium">{p.name}</span>
-                <StatusBadge status={p.status} />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {recentActivity(wallet).length > 0 && (
-          <div>
-            <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Recent activity</h3>
-            {recentActivity(wallet).map((entry) => (
-              <div key={entry.id} className="flex items-center justify-between border-b border-card-border py-2 text-xs last:border-0">
-                <div>
-                  <p className="font-medium">{entry.purpose ?? entry.direction}</p>
-                  <p className="text-muted-foreground">{fmtRelative(entry.effectiveAt)}</p>
-                </div>
-                <Money amount={entry.amount} asset={entry.asset} signed={entry.direction === "outflow"} />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <AccountDetailView 
+        account={wallet}
+        entities={entities}
+        policies={policies}
+        ledger={ledger}
+        onDelete={onDelete}
+      />
     </DetailDrawer>
   );
 }
@@ -321,6 +260,10 @@ function MockEntities() {
         entities={entities}
         policies={policies}
         ledger={ledger}
+        onDelete={(id) => {
+          useStore.getState().deleteAccount(id as any);
+          setSelectedWallet(null);
+        }}
       />
       
       <AddWalletDialog open={addWalletOpen} onOpenChange={setAddWalletOpen} />
@@ -458,6 +401,10 @@ function TestnetEntities() {
         entities={entities}
         policies={policies}
         ledger={ledger}
+        onDelete={(id) => {
+          useStore.getState().deleteAccount(id as any);
+          setSelectedWallet(null);
+        }}
       />
 
       {/* Entity Detail Drawer */}

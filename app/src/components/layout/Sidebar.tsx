@@ -54,23 +54,22 @@ export function Sidebar() {
             const active = href === "/" ? location === "/" : location.startsWith(href);
             return (
               <li key={href}>
-                <Link href={href}>
-                  <a
-                    className={cn(
-                      "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                      active
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
-                    )}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" />
-                    <span className="flex-1">{label}</span>
-                    {label === "Approvals" && pendingCount > 0 ? (
-                      <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-chart-3 px-1.5 text-[11px] font-semibold text-white">
-                        {pendingCount}
-                      </span>
-                    ) : null}
-                  </a>
+                <Link 
+                  href={href}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    active
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="flex-1">{label}</span>
+                  {label === "Approvals" && pendingCount > 0 ? (
+                    <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-chart-3 px-1.5 text-[11px] font-semibold text-white">
+                      {pendingCount}
+                    </span>
+                  ) : null}
                 </Link>
               </li>
             );

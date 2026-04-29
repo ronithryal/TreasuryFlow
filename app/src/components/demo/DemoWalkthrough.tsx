@@ -20,7 +20,7 @@ const WALKTHROUGH_CONTENT: Record<string, { title: string; steps: WalkthroughSte
   wallet_connect_sweep: {
     title: "Wallet + Sweep",
     steps: [
-      { title: "Active Policies", content: "TreasuryFlow autonomous policies monitor your target bands. A sweep policy is currently active to move excess funds.", icon: Zap, selector: '[data-tour="policies-section"]', route: "/" },
+      { title: "Active Policies", content: "TreasuryFlow autonomous policies monitor your corporate rules onchain. Review your active policies like 'Vendor Payment' or 'Liquidity Sweep' here.", icon: Zap, selector: '[data-tour="policies-section"]', route: "/" },
       { title: "Approval Required", content: "The sweep was proposed because reserves exceeded the threshold. Review the pending transfer.", icon: ShieldCheck, selector: '[data-tour="approvals-sweep-row"]', route: "/approvals" }
     ]
   },

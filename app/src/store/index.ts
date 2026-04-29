@@ -41,8 +41,8 @@ import { applyDecision, resolveApprovalRule } from "@/domain/approvals";
 import { executeIntent } from "@/domain/execution";
 import { runtimeId } from "@/domain/ids";
 
-const SCHEMA_VERSION = 1;
-const STORAGE_KEY = "treasuryflow:v1";
+const SCHEMA_VERSION = 2;
+const STORAGE_KEY = "treasuryflow:v2";
 
 interface UiState {
   forceMockAi: boolean;
@@ -160,8 +160,9 @@ export interface RootState {
   /** Inject a pending inbound (for the deposit-routing scenario). */
   injectInbound: (inbound: { collectionAccountId: AccountId; amount: number }) => string;
 
-  /** Demo scenario triggers — wired to the Overview buttons. */
   triggerScenario: (kind: "sweep" | "rebalance" | "friday_payout" | "deposit_routing" | "month_end" | "wallet_connect_sweep" | "morpho_yield" | "anomaly_warning" | "counterparty_risk" | "market_shock" | "predictive_forecast" | "audit_pdf" | "create_policy") => void;
+  linkAccount: (address: string, entityId: EntityId, name: string) => AccountId;
+  deleteAccount: (id: AccountId) => void;
 }
 
 // Internal helpers ---------------------------------------------------------
@@ -322,21 +323,32 @@ export const useStore = create<RootState>()(
       },
 
       setTestnetBalances: ({ eth, usdc }) =>
-        set((s) => ({
-          testnet: {
+        set((s) => {
+          const nextTestnet = {
             ...s.testnet,
             ethBalance: eth ?? s.testnet.ethBalance,
             usdcBalance: usdc ?? s.testnet.usdcBalance,
-          },
-        })),
+          };
+          // Also update the "Base Operating" account balance in the main array
+          // so KPI cards and other UI components reflect the real testnet funds.
+          const nextAccounts = s.accounts.map((a) =>
+            a.id === "acc_base_ops"
+              ? { ...a, balance: nextTestnet.usdcBalance, availableBalance: nextTestnet.usdcBalance }
+              : a
+          );
+          return { testnet: nextTestnet, accounts: nextAccounts };
+        }),
 
       recordTestnetExecution: (e) =>
         set((s) => ({ testnet: { ...s.testnet, executions: [e, ...s.testnet.executions] } })),
 
-      clearTestnet: () =>
+      clearTestnet: () => {
+        const fresh = fromSeed(SEED);
         set({
+          ...fresh,
           testnet: { connectedAddress: null, ethBalance: 0, usdcBalance: 0, hydrated: false, executions: [] },
-        }),
+        });
+      },
 
       startWalkthrough: (scenario) => set({ walkthroughActive: true, activeScenario: scenario, currentStep: 0 }),
       nextStep: () => set((s) => ({ currentStep: s.currentStep + 1 })),
@@ -675,6 +687,35 @@ export const useStore = create<RootState>()(
             break;
           }
         }
+      },
+
+      linkAccount: (address, entityId, name) => {
+        const state = get();
+        const id = "acc_link_" + Date.now();
+        const newAccount: Account = {
+          id: id as AccountId,
+          name,
+          accountType: "operating_wallet",
+          chain: "base",
+          asset: "USDC",
+          entityId,
+          balance: 0,
+          availableBalance: 0,
+          status: "healthy",
+          settlementRail: "onchain",
+          tags: ["user-linked"],
+          lastUpdated: state.now,
+          address: address as `0x${string}`,
+          description: `Non-custodial operating wallet for ${state.entities.find(e => e.id === entityId)?.name || 'Entity'}. Linked via TreasuryFlow Onboarding.`,
+        };
+        set({ accounts: [newAccount, ...state.accounts] });
+        return id as AccountId;
+      },
+
+      deleteAccount: (id) => {
+        set((s) => ({
+          accounts: s.accounts.filter((a) => a.id !== id),
+        }));
       },
     }),
     {

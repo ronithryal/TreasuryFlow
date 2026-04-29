@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { ShieldCheck } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const SCENARIOS = [
   { kind: "wallet_connect_sweep" as const, label: "1) Wallet + Sweep", desc: "Connect & sweep policy" },
@@ -51,6 +52,7 @@ export function Overview() {
   const exceptionCount = accounts.filter((a) => a.status === "low" || a.status === "breached").length
     + intents.filter((i) => i.status === "failed").length
     + ledger.filter((l) => l.reconciliationStatus === "missing_tags").length;
+    
   const liquidityAccounts = accounts.filter((a) =>
     ["base", "ethereum", "polygon"].includes(a.chain) &&
     ["operating_wallet", "reserve_wallet"].includes(a.accountType)
@@ -60,7 +62,6 @@ export function Overview() {
   async function runScenario(kind: typeof SCENARIOS[number]["kind"]) {
     setRunning(kind);
 
-    // Route to relevant page based on scenario
     const routeMap: Record<typeof SCENARIOS[number]["kind"], string> = {
       wallet_connect_sweep: "/approvals",
       morpho_yield: "/yield",
@@ -73,8 +74,6 @@ export function Overview() {
     };
 
     navigate(routeMap[kind]);
-    
-    // Wait for navigation and layout
     await new Promise((r) => setTimeout(r, 300));
     
     triggerScenario(kind);
@@ -85,6 +84,7 @@ export function Overview() {
   return (
     <div className="space-y-6">
       <TestnetSetupBanner />
+      
       {/* Vision Banner */}
       <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 p-6">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -140,9 +140,77 @@ export function Overview() {
         />
       </div>
 
-      {/* Liquidity health + right panels */}
+      {/* Row 1: Policies + Exceptions (Focused on Governance) */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card id="policies-section" data-tour="policies-section">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Policies active today</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {firingToday.map((p) => (
+              <div key={p.id} className="flex items-center justify-between text-xs p-2 rounded-md bg-primary/5 border border-primary/10">
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                  <span className="font-bold">{p.name}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-muted-foreground italic">Fired {fmtRelative(p.lastTriggeredAt!)}</span>
+                  <StatusBadge status="active" />
+                </div>
+              </div>
+            ))}
+            {policies.filter((p) => p.status === "active").slice(0, 5).map((p) => (
+              <div key={p.id} className="flex items-center justify-between text-xs">
+                <span className="font-medium">{p.name}</span>
+                <StatusBadge status={p.status} />
+              </div>
+            ))}
+            {firingToday.length === 0 && policies.filter((p) => p.status === "active").length === 0 && (
+              <p className="text-xs text-muted-foreground">No active policies</p>
+            )}
+            <Button variant="ghost" size="sm" className="w-full text-[10px] h-6 mt-2 hover:bg-primary/5 text-primary/60" onClick={() => navigate("/policies")}>
+              View all policies
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card id="exceptions-section">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <AlertTriangle className="h-4 w-4 text-chart-3" />
+              Policy Exceptions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {accounts.filter((a) => a.status === "low" || a.status === "breached").map((a) => (
+                <div key={a.id} className="flex items-center justify-between text-xs p-2 rounded-md bg-destructive/5 border border-destructive/10">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-3 w-3 text-destructive" />
+                    <span>{a.name} balance {a.status}</span>
+                  </div>
+                  <StatusBadge status={a.status} />
+                </div>
+              ))}
+              {intents.filter((i) => i.riskFlags.length > 0 && i.status === "pending_approval").map((i) => (
+                <div key={i.id} className="flex items-center justify-between text-xs p-2 rounded-md bg-amber-500/5 border border-amber-500/20">
+                  <span className="font-medium truncate max-w-[200px]">{i.title}</span>
+                  <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-600">Risk Flag</Badge>
+                </div>
+              ))}
+              {exceptionCount === 0 && (
+                <div className="flex items-center gap-2 text-chart-5 text-xs">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  No active exceptions
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Row 2: Health + Approvals + Activity */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Liquidity health by network */}
         <div className="space-y-3 lg:col-span-1">
           <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Liquidity health</h2>
           {liquidityAccounts.slice(0, 5).map((a) => (
@@ -150,7 +218,6 @@ export function Overview() {
           ))}
         </div>
 
-        {/* Pending approvals preview */}
         <Card className="lg:col-span-1">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between text-sm">
@@ -181,7 +248,6 @@ export function Overview() {
           </CardContent>
         </Card>
 
-        {/* Recent intents + exceptions */}
         <Card className="lg:col-span-1">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between text-sm">
@@ -205,62 +271,6 @@ export function Overview() {
         </Card>
       </div>
 
-      {/* Policies firing today + exceptions */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card id="policies-section" data-tour="policies-section">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Policies active today</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {policies.filter((p) => p.status === "active").slice(0, 5).map((p) => (
-              <div key={p.id} className="flex items-center justify-between text-xs">
-                <span className="font-medium">{p.name}</span>
-                <StatusBadge status={p.status} />
-              </div>
-            ))}
-            {firingToday.length === 0 && policies.filter((p) => p.status === "active").length === 0 && (
-              <p className="text-xs text-muted-foreground">No active policies</p>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <AlertTriangle className="h-4 w-4 text-chart-3" />
-              Exceptions
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-xs">
-            {accounts.filter((a) => a.status === "low" || a.status === "breached").map((a) => (
-              <div key={a.id} className="flex items-center justify-between">
-                <span>{a.name}</span>
-                <StatusBadge status={a.status} />
-              </div>
-            ))}
-            {intents.filter((i) => i.status === "failed").slice(0, 2).map((i) => (
-              <div key={i.id} className="flex items-center justify-between">
-                <span className="truncate">{i.title}</span>
-                <StatusBadge status="failed" />
-              </div>
-            ))}
-            {ledger.filter((l) => l.reconciliationStatus === "missing_tags").length > 0 && (
-              <div className="flex items-center justify-between">
-                <span>{ledger.filter((l) => l.reconciliationStatus === "missing_tags").length} ledger entries missing tags</span>
-                <Link href="/reconciliation">
-                  <a className="text-primary hover:underline">Review</a>
-                </Link>
-              </div>
-            )}
-            {exceptionCount === 0 && (
-              <div className="flex items-center gap-2 text-chart-5">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                No exceptions
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Bank funding coming soon banner */}
       <Card className="border-dashed border-muted-foreground/30 bg-muted/30">
         <CardContent className="flex items-center justify-between py-4">
@@ -268,7 +278,6 @@ export function Overview() {
             <p className="text-sm font-medium">Bank funding via partner rails — coming soon</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
               Fiat-to-digital-dollar conversion will be offered via compliant partner-powered rails.
-              Identity verification may be handled by regulated providers where required.
             </p>
           </div>
           <Button variant="outline" size="sm" disabled>Learn more</Button>

@@ -9,7 +9,7 @@
 - `src/domain/` — Pure policy engine, approval rules, execution simulator, ledger projection (100% testable without UI)
 - `src/store/` — Zustand slices per domain (accounts, policies, intents, ledger, etc.) with localStorage persist
 - `src/components/shared/` — Reusable primitives (StatusBadge, Money, DetailDrawer, AgentPanel, etc.)
-- `src/pages/` — Page-level UI composition (Overview, Policies, Approvals, Activity, Accounts, Reconciliation, Settings)
+- `src/pages/` — Page-level UI composition (Overview, Policies, Approvals, Activity, Accounts, Reconciliation, Settings, Onboarding)
 
 **Key design decisions:**
 
@@ -51,6 +51,7 @@
    - Version number bumped on schema changes
    - Old versions are dropped on boot (not migrated) — acceptable for demo
    - "Reset demo data" clears and re-seeds
+- **Purpose-driven UX**: Accounts now support a `description` field for operational context (e.g. "Main reserve", "Payroll").
 
 ## Verified Behavior
 
@@ -101,6 +102,17 @@
 - Wallet hydration: `TestnetHydrator` watches `useAccount`, drives `hydrateTestnet()` on connect and live balance polling (`useBalance` + `useReadContract`) every 8–12s into Zustand `testnet` slice
 - `useTestnetExecution`: approve + executePolicy two-step, waits for receipts via `waitForTransactionReceipt`, records result in `testnet.executions`
 - `usePolicyExecutionLogs`: `getLogs(PolicyExecuted, { source: address })` from earliest block, refreshed every 15s — feeds the Audit page in testnet mode
+- **Multi-Wallet Auth & Onboarding**: 
+  - **Global Wallet Watcher**: Moved redirection logic from `Topbar` to `App.tsx` (above the `Switch`) to ensure consistency across page transitions and prevent accidental "orphaned" redirects.
+  - **Known Wallets**: Intelligent redirection to specific account detail view (`/accounts?id=...`) upon connection.
+  - **Unknown Wallets**: Automated deep-link to `/onboarding/unlinked` for sovereign wallet registration, with a logic-bypass for the Overview page to support graceful "Cancel" flows.
+  - **Linking Logic**: `linkAccount` action in store dynamically associates wallet addresses with legal entities, persisting via `localStorage`.
+- **Mirror-Sync State Management**:
+  - `setTestnetBalances` now performs a "mirror-sync" operation, updating both the `testnet` slice and the primary `accounts` array (specifically `acc_base_ops`). This ensures that KPI cards, charts, and account lists stay in sync with onchain reality without requiring a full page refresh.
+- **Resilient RPC Auditing**:
+  - `usePolicyExecutionLogs.ts` implements a "graceful fallback" for Alchemy free-tier block range errors. It suppresses `eth_getLogs` limit errors and prioritizes locally stored execution metadata, ensuring the Audit UI remains demo-ready even under heavy RPC load.
+- **Automatic State Restoration**:
+  - `clearTestnet` action now re-seeds the store with the full $2.3M mock treasury upon wallet disconnection, ensuring the demo environment never feels "empty" after a live testnet session.
 
 ✅ **Production Build**
 - No external asset requests (fonts inlined via Tailwind)

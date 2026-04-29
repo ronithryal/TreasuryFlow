@@ -25,7 +25,7 @@ function perplexityProxy(apiKey: string | undefined): Plugin {
           const chunks: Buffer[] = [];
           for await (const chunk of req) chunks.push(chunk as Buffer);
           const body = Buffer.concat(chunks).toString("utf-8");
-          const upstream = await fetch("https://api.perplexity.ai/v1/agent", {
+          const upstream = await fetch("https://api.perplexity.ai/chat/completions", {
             method: "POST",
             headers: {
               "content-type": "application/json",

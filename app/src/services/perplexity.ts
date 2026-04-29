@@ -28,15 +28,17 @@ class FetchAgentClient implements AgentClient {
     this.base = base.replace(/\/$/, "");
   }
   async ask({ instructions, input, signal }: Parameters<AgentClient["ask"]>[0]): Promise<string> {
-    const res = await fetch(`${this.base}/v1/agent`, {
+    const res = await fetch(this.base, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        model: "sonar-pro",
-        instructions,
-        input,
+        model: "sonar",
+        messages: [
+          { role: "system", content: instructions },
+          { role: "user", content: input }
+        ],
         temperature: 0.3,
-        max_output_tokens: 512,
+        max_tokens: 512,
       }),
       signal,
     });
@@ -44,10 +46,8 @@ class FetchAgentClient implements AgentClient {
       const body = await res.text().catch(() => "");
       throw new Error(`Agent API ${res.status}: ${body.slice(0, 200)}`);
     }
-    const json = await res.json() as { output_text?: string; output?: Array<{ content?: Array<{ text?: string }> }> };
-    if (json.output_text) return json.output_text;
-    // Fallback: parse first text block from output array
-    const text = json.output?.[0]?.content?.[0]?.text;
+    const json = await res.json() as { choices: Array<{ message: { content: string } }> };
+    const text = json.choices?.[0]?.message?.content;
     if (text) return text;
     throw new Error("No text in agent response");
   }
