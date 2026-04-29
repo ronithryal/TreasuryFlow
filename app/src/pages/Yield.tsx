@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Money } from "@/components/shared/Money";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Zap, ShieldCheck, ArrowUpRight, TrendingUp, Landmark, CheckCircle2, ExternalLink } from "lucide-react";
+import { Zap, ShieldCheck, ArrowUpRight, TrendingUp, Landmark, CheckCircle2, ExternalLink, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { BASESCAN_TX } from "@/web3/testnet";
 import { IS_TESTNET } from "@/web3/mode";
 import type { Account } from "@/types/domain";
@@ -55,7 +56,10 @@ function TxPopup({ hash, action, onClose }: { hash: string; action: string; onCl
             </div>
             <DialogTitle>Transaction Submitted</DialogTitle>
           </div>
-          <DialogDescription>{action} submitted to Base Sepolia testnet.</DialogDescription>
+          <DialogDescription>
+            {action} submitted to Base Sepolia testnet.{" "}
+            <span className="font-medium text-foreground">This is a demo execution — no real yield is deployed.</span>
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="rounded-lg bg-muted/40 p-3 font-mono text-[11px] text-muted-foreground break-all">
@@ -68,7 +72,7 @@ function TxPopup({ hash, action, onClose }: { hash: string; action: string; onCl
             className="flex items-center gap-1.5 text-xs text-primary hover:underline"
           >
             <ExternalLink className="h-3.5 w-3.5" />
-            View on BaseScan (Base Sepolia)
+            View on BaseScan (Base Sepolia) — opens Base Sepolia transaction evidence for this payment request
           </a>
         </div>
         <DialogFooter>
@@ -191,30 +195,57 @@ export function Yield() {
   return <MockYield />;
 }
 
-// ─── Mock variant (no wagmi, no tx hashes) ───────────────────────────────────
+// ─── Mock variant — coming-soon states for all yield actions ─────────────────
 
 function MockYield() {
   const accounts = useStore((s) => s.accounts.filter(a => a.name.toLowerCase().includes("morpho")));
 
   return (
-    <YieldLayout
-      accounts={accounts}
-      renderPositionFooter={() => (
-        <>
-          <Button variant="outline" size="sm" className="w-full text-xs h-8">Withdraw</Button>
-          <Button variant="default" size="sm" className="w-full text-xs h-8">Add Funds</Button>
-        </>
-      )}
-      renderOpportunityFooter={() => (
-        <Button variant="outline" className="w-full text-xs h-9 border-card-border hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all">
-          Configure Deployment Policy
-        </Button>
-      )}
-    />
+    <>
+      {/* Coming-soon banner */}
+      <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 mb-2">
+        <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+        <div className="text-xs text-muted-foreground leading-relaxed">
+          <span className="font-semibold text-foreground">Yield strategies are not yet live.</span>{" "}
+          This page shows planned integrations with Morpho, Aave, and Sky.
+          Configuring and deploying yield strategies requires a testnet wallet and strategy approval workflow.
+          Coming soon: pending strategy approval and yield deployment flows.
+        </div>
+      </div>
+
+      <YieldLayout
+        accounts={accounts}
+        renderPositionFooter={() => (
+          <>
+            <Button variant="outline" size="sm" className="w-full text-xs h-8" disabled title="Coming soon: yield deployment requires testnet wallet and strategy approval.">
+              Withdraw
+            </Button>
+            <Button variant="default" size="sm" className="w-full text-xs h-8" disabled title="Coming soon: yield deployment requires testnet wallet and strategy approval.">
+              Add Funds
+            </Button>
+          </>
+        )}
+        renderOpportunityFooter={() => (
+          <div className="w-full space-y-1.5">
+            <Button
+              variant="outline"
+              className="w-full text-xs h-9 border-card-border opacity-60 cursor-not-allowed"
+              disabled
+              title="Coming soon: yield deployment requires testnet wallet and strategy approval."
+            >
+              Activate Policy
+            </Button>
+            <p className="text-[10px] text-muted-foreground text-center">
+              Coming soon: pending testnet wallet and strategy approval.
+            </p>
+          </div>
+        )}
+      />
+    </>
   );
 }
 
-// ─── Testnet variant (wagmi hooks, real onchain execution) ────────────────────
+// ─── Testnet variant — wagmi hooks, real onchain execution ────────────────────
 // Only rendered inside WagmiProvider — safe to use wagmi hooks here.
 
 import { useYieldExecution } from "@/web3/useYieldExecution";
@@ -232,12 +263,28 @@ function TestnetYield() {
       const hash = await fn();
       setTxPopup({ hash, action: label });
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const msg = err instanceof Error ? err.message : String(err);
+      // Distinguish wallet errors from execution errors
+      if (msg.toLowerCase().includes("wallet") || msg.toLowerCase().includes("connect") || msg.toLowerCase().includes("coinbase")) {
+        setError(`Wallet: ${msg} — Connect MetaMask or Coinbase Wallet on Base Sepolia.`);
+      } else {
+        setError(msg);
+      }
     }
   }
 
   return (
     <>
+      {/* Testnet context banner */}
+      <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 mb-2">
+        <Badge variant="outline" className="text-[10px] mt-0.5 shrink-0">Testnet</Badge>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Yield actions on this page use the <strong>P0 golden path</strong> on Base Sepolia testnet.
+          This is a demo execution — no real yield is deployed to Morpho, Aave, or Sky.
+          Connect MetaMask or Coinbase Wallet on Base Sepolia to proceed.
+        </p>
+      </div>
+
       <YieldLayout
         accounts={accounts}
         renderPositionFooter={() => (
@@ -247,7 +294,7 @@ function TestnetYield() {
               size="sm"
               className="w-full text-xs h-8"
               disabled={isPending}
-              onClick={() => run("Withdraw", executeWithdraw)}
+              onClick={() => run("Withdraw (testnet demo)", executeWithdraw)}
             >
               {isPending ? "Confirm in Wallet…" : "Withdraw"}
             </Button>
@@ -256,26 +303,39 @@ function TestnetYield() {
               size="sm"
               className="w-full text-xs h-8"
               disabled={isPending}
-              onClick={() => run("Add Funds", executeAddFunds)}
+              onClick={() => run("Add Funds (testnet demo)", executeAddFunds)}
             >
               {isPending ? "Confirm in Wallet…" : "Add Funds"}
             </Button>
           </>
         )}
         renderOpportunityFooter={(op) => (
-          <Button
-            variant="outline"
-            className="w-full text-xs h-9 border-card-border hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all"
-            disabled={isPending}
-            onClick={() => run(`Deploy to ${op.name}`, () => executeDeployPolicy(op.name))}
-          >
-            {isPending ? "Confirm in Wallet…" : "Configure Deployment Policy"}
-          </Button>
+          <div className="w-full space-y-1.5">
+            <Button
+              variant="outline"
+              className="w-full text-xs h-9 border-card-border hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all"
+              disabled={isPending}
+              onClick={() => run(`Activate Policy for ${op.name} (testnet demo)`, () => executeDeployPolicy(op.name))}
+            >
+              {isPending ? "Confirm in Wallet…" : "Activate Policy"}
+            </Button>
+            <p className="text-[10px] text-muted-foreground text-center">Testnet demo — no real yield deployed</p>
+          </div>
         )}
       />
 
       {error && (
-        <p className="mt-2 text-xs text-destructive">{error}</p>
+        <div className="mt-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+          <p className="text-xs text-destructive">{error}</p>
+          {(error.includes("wallet") || error.includes("Wallet") || error.includes("connect")) && (
+            <ul className="mt-2 text-xs text-muted-foreground space-y-1 list-disc list-inside">
+              <li>Switch your wallet network to Base Sepolia</li>
+              <li>Connect MetaMask or Coinbase Wallet</li>
+              <li>Mint test mUSDC using the app's mint button</li>
+              <li>Retry the action</li>
+            </ul>
+          )}
+        </div>
       )}
 
       {txPopup && (

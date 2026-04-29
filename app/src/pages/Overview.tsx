@@ -185,7 +185,7 @@ export function Overview() {
         <Card className="lg:col-span-1">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between text-sm">
-              Recent intents
+              Recent Payment Requests
               <Link href="/activity">
                 <a className="text-xs text-primary hover:underline">View all <ArrowRight className="inline h-3 w-3" /></a>
               </Link>

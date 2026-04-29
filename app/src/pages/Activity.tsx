@@ -59,7 +59,7 @@ export function Activity() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Intent</TableHead>
+                <TableHead>Payment Request</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Source → Destination</TableHead>

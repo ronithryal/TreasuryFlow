@@ -73,12 +73,12 @@ export function Approvals() {
 
       <Card>
         {filtered.length === 0 ? (
-          <EmptyState title="No pending approvals" description="All intents have been resolved." icon={<Clock className="h-5 w-5" />} />
+          <EmptyState title="No pending approvals" description="All payment requests have been resolved." icon={<Clock className="h-5 w-5" />} />
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Intent</TableHead>
+                <TableHead>Payment Request</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Chain</TableHead>
@@ -135,7 +135,7 @@ export function Approvals() {
           footer={
             <ApprovalDecisionBar
               canDecide={IS_TESTNET || selected.requestedBy !== currentUserId}
-              reasonDisabled="You initiated this intent — a different approver must decide."
+              reasonDisabled="You initiated this payment request — a different approver must decide."
               intent={selected}
               onDecision={({ decision, comment, txHash }) => {
                 decideOnIntent(selected.id as IntentId, decision, comment);
@@ -179,8 +179,8 @@ export function Approvals() {
             {/* AI rationale explainer */}
             <AgentPanel
               title="Agent explanation"
-              description="Why did this intent fire, and does anything look unusual?"
-              cta="Explain this intent"
+              description="Why did this payment request fire, and does anything look unusual?"
+              cta="Explain this payment request"
               request={() => explainIntent(selected, accounts, selectedPolicy)}
             />
 

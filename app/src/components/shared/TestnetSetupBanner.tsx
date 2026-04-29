@@ -63,7 +63,7 @@ function TestnetBannerContent() {
           <div>
             <CardTitle className="text-sm font-bold">Connect a wallet to begin</CardTitle>
             <p className="text-xs text-muted-foreground">
-              Use the Connect button in the top-right. The demo runs on Base Sepolia.
+              Connect MetaMask or Coinbase Wallet on Base Sepolia using the button in the top-right.
             </p>
           </div>
         </CardHeader>

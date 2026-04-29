@@ -129,7 +129,7 @@ function DecisionLayout({
             className="flex items-center gap-1.5 text-xs text-primary font-medium hover:underline"
           >
             <ExternalLink className="h-3.5 w-3.5" />
-            See Onchain Tx — BaseScan
+            See Onchain Tx — opens Base Sepolia transaction evidence for this payment request
           </a>
         </div>
       ) : null}
@@ -140,7 +140,7 @@ function DecisionLayout({
               <TooltipTrigger asChild>
                 <span className="text-xs text-muted-foreground">{reasonDisabled}</span>
               </TooltipTrigger>
-              <TooltipContent>Maker-checker: initiator cannot approve their own intent.</TooltipContent>
+              <TooltipContent>Maker-checker: initiator cannot approve their own payment request.</TooltipContent>
             </Tooltip>
           ) : null}
           <div className="flex gap-2">

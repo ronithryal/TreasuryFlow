@@ -183,7 +183,7 @@ function OnchainAuditTrail() {
         <Card>
           <CardContent className="py-6 text-center text-xs text-muted-foreground space-y-1">
             <p className="font-medium">No onchain Payment Requests executed yet.</p>
-            <p>Complete the golden path to write the first IntentExecuted proof.</p>
+            <p>Complete the golden path to write the first onchain payment request proof.</p>
           </CardContent>
         </Card>
       )}
@@ -218,11 +218,11 @@ function IntentExecutionCard({ log }: { log: IntentExecutionLog }) {
             <div>
               <p className="text-sm font-bold">
                 {log.policyName !== "—" ? log.policyName : "Payment Request"}
-                {" "}&middot; {amountStr} mUSDC
+                {" "}· {amountStr} USDC
               </p>
               <p className="text-[10px] font-mono text-muted-foreground">
-                Intent #{log.intentId !== "—" ? log.intentId : "?"}{" "}
-                &middot; block {log.blockNumber > 0n ? log.blockNumber.toString() : "?"}
+                Payment Request #{log.intentId !== "—" ? log.intentId : "?"}{" "}
+                · block {log.blockNumber > 0n ? log.blockNumber.toString() : "?"}
                 {log.timestamp > 0 && ` · ${new Date(log.timestamp * 1000).toLocaleString()}`}
               </p>
             </div>
@@ -291,6 +291,7 @@ function IntentExecutionCard({ log }: { log: IntentExecutionLog }) {
             href={log.executionUrl}
             target="_blank" rel="noreferrer"
             className="flex items-center justify-between p-2 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors group"
+            title="Opens Base Sepolia transaction evidence for this payment request."
           >
             <div className="space-y-0.5">
               <p className="text-[9px] uppercase tracking-tight text-primary/70 font-medium">Execution Tx (proof)</p>

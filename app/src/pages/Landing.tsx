@@ -2,14 +2,12 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useStore } from "@/store";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Building2, Lock, ArrowRight, Zap } from "lucide-react";
 
 export function Landing({ onEnter }: { onEnter?: () => void } = {}) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [mode, setMode] = useState<"landing" | "login">("landing");
+  const [showSignInInfo, setShowSignInInfo] = useState(false);
   const [, navigate] = useLocation();
   const setDemoEntered = useStore((s) => s.setDemoEntered);
 
@@ -18,78 +16,6 @@ export function Landing({ onEnter }: { onEnter?: () => void } = {}) {
     onEnter?.();
     navigate("/");
   };
-
-  const handleLoginClick = () => {
-    setMode("login");
-  };
-
-  const handleBackClick = () => {
-    setMode("landing");
-  };
-
-  const handleLoginSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // For now, just navigate to the app (no real auth yet)
-    if (email && password) {
-      setDemoEntered(true);
-      onEnter?.();
-      navigate("/");
-    }
-  };
-
-  if (mode === "login") {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="h-8 w-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold">
-                T
-              </div>
-              <span className="font-semibold">TreasuryFlow</span>
-            </div>
-            <CardTitle>Sign in to your account</CardTitle>
-            <CardDescription>Enter your credentials to access the treasury dashboard</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-1 block">Email</label>
-                <Input
-                  type="email"
-                  placeholder="you@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1 block">Password</label>
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={!email || !password}>
-                Sign in
-              </Button>
-            </form>
-            <div className="mt-4 pt-4 border-t">
-              <Button variant="ghost" className="w-full" onClick={handleBackClick}>
-                ← Back to landing
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground text-center mt-4">
-              Demo mode: any email/password will work. Real authentication coming in v1.0.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
@@ -102,12 +28,38 @@ export function Landing({ onEnter }: { onEnter?: () => void } = {}) {
             </div>
             <span className="font-semibold">TreasuryFlow</span>
           </div>
-          <Button onClick={handleLoginClick} variant="outline" size="sm">
+          {/* Sign In replaced with honest info tooltip */}
+          <Button onClick={() => setShowSignInInfo(true)} variant="outline" size="sm">
             <Lock className="h-4 w-4 mr-2" />
             Sign in
           </Button>
         </div>
       </header>
+
+      {/* Sign-in info dialog — honest about demo status */}
+      <Dialog open={showSignInInfo} onOpenChange={setShowSignInInfo}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>About Sign In</DialogTitle>
+            <DialogDescription>
+              This demo uses simulated finance roles to show maker-checker workflows.
+              Login and user accounts are coming soon.
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            To explore the full dashboard now, use <strong>Enter Demo</strong> below.
+            Role switching (Initiator / CFO Approver) is available inside the app via the user switcher.
+          </p>
+          <div className="flex gap-2 pt-2">
+            <Button variant="outline" className="flex-1" onClick={() => setShowSignInInfo(false)}>
+              Close
+            </Button>
+            <Button className="flex-1 gap-2" onClick={() => { setShowSignInInfo(false); handleDemoClick(); }}>
+              <Zap className="h-4 w-4" /> Enter Demo
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Hero */}
       <section className="max-w-6xl mx-auto px-4 py-20">
@@ -117,7 +69,8 @@ export function Landing({ onEnter }: { onEnter?: () => void } = {}) {
               Automate your treasury. Reduce the cost of trust.
             </h1>
             <p className="text-xl text-muted-foreground mb-6">
-              TreasuryFlow is the non-custodial treasury operating system for the digital dollar economy — automating policy execution, continuous AI-verified audits, and real-time market response, all without ever touching your funds. <span className="font-semibold text-foreground">We don't ask you to trust us. We prove it onchain.</span>
+              TreasuryFlow is the non-custodial treasury operating system for the digital dollar economy — automating policy execution, continuous AI-verified audits, and real-time market response, all without ever touching your funds.{" "}
+              <span className="font-semibold text-foreground">We don't ask you to trust us. We prove it onchain.</span>
             </p>
           </div>
 
@@ -143,11 +96,11 @@ export function Landing({ onEnter }: { onEnter?: () => void } = {}) {
             </Card>
           </div>
 
-          {/* CTA */}
+          {/* Primary CTA */}
           <div className="flex gap-4 pt-8">
             <Button size="lg" onClick={handleDemoClick} className="gap-2">
               <Zap className="h-4 w-4" />
-              See demo
+              Enter Demo
               <ArrowRight className="h-4 w-4" />
             </Button>
             <Button size="lg" variant="outline">
@@ -180,7 +133,7 @@ export function Landing({ onEnter }: { onEnter?: () => void } = {}) {
             {
               icon: <ArrowRight className="h-6 w-6 text-primary" />,
               title: "AI Assistants",
-              desc: "Natural language policy drafting, intent rationale explainer, accounting tag suggestions.",
+              desc: "Natural language policy drafting, payment request rationale explainer, accounting tag suggestions.",
             },
           ].map((feature, i) => (
             <Card key={i} className="border-dashed">
@@ -203,10 +156,10 @@ export function Landing({ onEnter }: { onEnter?: () => void } = {}) {
         <h2 className="text-3xl font-bold mb-12">See it in action</h2>
         <div className="space-y-4">
           {[
-            "Click 'See demo' to trigger a reserve sweep policy",
-            "Watch the intent flow through approvals and execution",
+            "Click 'Enter Demo' to trigger a reserve sweep policy",
+            "Watch payment requests flow through maker-checker approvals and execution",
             "See balances update and ledger entries post in real-time",
-            "Explore AI-powered tag suggestions and audit reports",
+            "Explore AI-powered tag suggestions and onchain audit reports",
           ].map((step, i) => (
             <div key={i} className="flex gap-4">
               <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold">
@@ -221,7 +174,7 @@ export function Landing({ onEnter }: { onEnter?: () => void } = {}) {
       {/* Footer */}
       <footer className="border-t border-card-border mt-20 py-8">
         <div className="max-w-6xl mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>TreasuryFlow v0.1 — Demo mode. Real authentication and Coinbase integration coming in v1.0.</p>
+          <p>TreasuryFlow v0.1 — Demo mode. Login and Coinbase integration coming soon.</p>
         </div>
       </footer>
     </div>

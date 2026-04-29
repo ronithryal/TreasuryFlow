@@ -7,6 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { CheckCircle2, RotateCcw } from "lucide-react";
 
+// Show internal dev settings only in local dev or when explicitly enabled.
+const SHOW_DEV_SETTINGS =
+  import.meta.env.DEV ||
+  import.meta.env.VITE_SHOW_DEV_SETTINGS === "true";
+
 export function Settings() {
   const { ui, setForceMockAi, setDarkMode, resetToSeed, users, currentUserId } = useStore((s) => ({
     ui: s.ui,
@@ -24,7 +29,14 @@ export function Settings() {
       <Card>
         <CardHeader><CardTitle className="text-base">Roles & Permissions</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-xs text-muted-foreground">Signed in as <span className="font-medium text-foreground">{currentUser?.name}</span> · role: <span className="font-medium text-foreground">{currentUser?.role}</span>. Use the user switcher in the top-right to simulate maker-checker.</p>
+          <p className="text-xs text-muted-foreground">
+            Signed in as <span className="font-medium text-foreground">{currentUser?.name}</span> · role:{" "}
+            <span className="font-medium text-foreground">{currentUser?.role}</span>.
+            Use the user switcher in the top-right to simulate maker-checker workflows.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            This demo uses simulated finance roles to show maker-checker controls. Login and user accounts are coming soon.
+          </p>
           <div className="divide-y divide-card-border">
             {users.map((u) => (
               <div key={u.id} className="flex items-center justify-between py-2.5">
@@ -43,9 +55,9 @@ export function Settings() {
       <Card>
         <CardHeader><CardTitle className="text-base">Approval Thresholds</CardTitle></CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <div className="flex justify-between"><span>Auto-approve below</span><span className="font-mono font-medium">$25,000</span></div>
-          <div className="flex justify-between"><span>Require 1 approver above</span><span className="font-mono font-medium">$25,000</span></div>
-          <div className="flex justify-between"><span>Cash-out approval threshold</span><span className="font-mono font-medium">$5,000</span></div>
+          <div className="flex justify-between"><span>Auto-approve below</span><span className="font-mono font-medium">25,000 USDC</span></div>
+          <div className="flex justify-between"><span>Require 1 approver above</span><span className="font-mono font-medium">25,000 USDC</span></div>
+          <div className="flex justify-between"><span>Cash-out approval threshold</span><span className="font-mono font-medium">5,000 USDC</span></div>
           <div className="flex justify-between"><span>First-time counterparty</span><span className="font-mono font-medium">Always require</span></div>
         </CardContent>
       </Card>
@@ -91,7 +103,10 @@ export function Settings() {
           <Separator />
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium flex items-center gap-2">Bank funding (fiat → digital dollar) <Badge variant="muted" className="text-[10px]">Coming soon</Badge></p>
+              <p className="text-sm font-medium flex items-center gap-2">
+                Bank funding (fiat → digital dollar)
+                <Badge variant="muted" className="text-[10px]">Coming soon</Badge>
+              </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 Bank funding and fiat-to-digital-dollar conversion will be offered via compliant partner-powered rails.
                 Identity verification may be handled by regulated providers where required.
@@ -101,18 +116,31 @@ export function Settings() {
         </CardContent>
       </Card>
 
-      {/* AI settings */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">AI Settings</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label className="text-sm font-normal normal-case tracking-normal text-foreground">Force mock AI</Label>
-              <p className="text-xs text-muted-foreground">Disable real API calls — use plausible mock responses. No key required.</p>
+      {/* AI settings — only visible to developers */}
+      {SHOW_DEV_SETTINGS && (
+        <Card className="border-dashed border-amber-500/40 bg-amber-500/5">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              AI Settings
+              <Badge variant="secondary" className="text-[10px] font-mono">DEV ONLY</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-sm font-normal normal-case tracking-normal text-foreground">Force mock AI</Label>
+                <p className="text-xs text-muted-foreground">Disable real API calls — use plausible mock responses. No key required.</p>
+              </div>
+              <Switch checked={ui.forceMockAi} onCheckedChange={setForceMockAi} />
             </div>
-            <Switch checked={ui.forceMockAi} onCheckedChange={setForceMockAi} />
-          </div>
-          <Separator />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Appearance */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Appearance</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-sm font-normal normal-case tracking-normal text-foreground">Dark mode</Label>
@@ -137,7 +165,7 @@ export function Settings() {
         <CardContent className="flex items-center justify-between py-4">
           <div>
             <p className="text-sm font-medium">Reset demo data</p>
-            <p className="text-xs text-muted-foreground">Returns all accounts, policies, intents, and ledger to the seed state.</p>
+            <p className="text-xs text-muted-foreground">Returns all accounts, policies, payment requests, and ledger to the seed state.</p>
           </div>
           <Button variant="outline" size="sm" onClick={resetToSeed}>
             <RotateCcw className="h-3.5 w-3.5 mr-1.5" />Reset

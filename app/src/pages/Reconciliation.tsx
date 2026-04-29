@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { computeCompleteness, buildCsv } from "@/domain/reconciliation";
 import { fmtRelative, fmtDateAbs, fmtTitle } from "@/lib/format";
 import { suggestTags } from "@/services/ai-features";
-import { CheckCircle2, Download, FileSpreadsheet } from "lucide-react";
+import { CheckCircle2, Download, FileSpreadsheet, Info } from "lucide-react";
 import type { LedgerEntry, LedgerEntryId, ReconciliationStatus } from "@/types/domain";
 
 export function Reconciliation() {
@@ -127,10 +127,38 @@ export function Reconciliation() {
       <Tabs value={tab} onValueChange={(v) => setTab(v as ReconciliationStatus | "all")}>
         <TabsList>
           <TabsTrigger value="all">All ({stats.total})</TabsTrigger>
-          <TabsTrigger value="missing_tags">Missing tags ({stats.byStatus.missing_tags})</TabsTrigger>
-          <TabsTrigger value="tagged">Tagged ({stats.byStatus.tagged})</TabsTrigger>
-          <TabsTrigger value="reviewed">Reviewed ({stats.byStatus.reviewed})</TabsTrigger>
-          <TabsTrigger value="exported">Exported ({stats.byStatus.exported})</TabsTrigger>
+          <TabsTrigger
+            value="missing_tags"
+            title="Missing Tags: Recorded but not assigned to a GL/accounting category."
+            className="gap-1"
+          >
+            Missing tags ({stats.byStatus.missing_tags})
+            <Info className="h-3 w-3 text-muted-foreground opacity-60" />
+          </TabsTrigger>
+          <TabsTrigger
+            value="tagged"
+            title="Tagged: Assigned to a GL/accounting category."
+            className="gap-1"
+          >
+            Tagged ({stats.byStatus.tagged})
+            <Info className="h-3 w-3 text-muted-foreground opacity-60" />
+          </TabsTrigger>
+          <TabsTrigger
+            value="reviewed"
+            title="Reviewed: Controller has reviewed the entry."
+            className="gap-1"
+          >
+            Reviewed ({stats.byStatus.reviewed})
+            <Info className="h-3 w-3 text-muted-foreground opacity-60" />
+          </TabsTrigger>
+          <TabsTrigger
+            value="exported"
+            title="Exported: Included in the latest ERP/export packet."
+            className="gap-1"
+          >
+            Exported ({stats.byStatus.exported})
+            <Info className="h-3 w-3 text-muted-foreground opacity-60" />
+          </TabsTrigger>
         </TabsList>
         <TabsContent value={tab}>
           <Card>

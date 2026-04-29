@@ -53,7 +53,7 @@ function MockPolicyBuilder({ open, onOpenChange }: { open: boolean; onOpenChange
       isPending={false}
       onGenerate={handleGenerate}
       onDeploy={handleDeploy}
-      deployLabel="Deploy to Safes"
+      deployLabel="Activate Policy"
     />
   );
 }

@@ -11,7 +11,6 @@ import { Money } from "@/components/shared/Money";
 import { Building2, Plus, Wallet, ChevronRight, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { fmtRelative, fmtDateAbs } from "@/lib/format";
-import { useLocation } from "wouter";
 import { IS_TESTNET } from "@/web3/mode";
 import type { Account, Entity } from "@/types/domain";
 
@@ -23,8 +22,6 @@ export function Entities() {
 // ─── Shared Wallet Components & Dialog ──────────────────────────────────────
 
 function AddWalletDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (v: boolean) => void }) {
-  const [, navigate] = useLocation();
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md bg-card border-card-border">
@@ -56,8 +53,9 @@ function AddWalletDialog({ open, onOpenChange }: { open: boolean, onOpenChange: 
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="pointer-events-auto h-7 text-[10px] uppercase font-bold tracking-widest bg-muted/50 border-border hover:bg-primary hover:text-primary-foreground transition-all"
-                onClick={() => { onOpenChange(false); navigate("/roadmap"); }}
+                disabled
+                className="h-7 text-[10px] uppercase font-bold tracking-widest bg-muted/50 border-border opacity-80 cursor-not-allowed"
+                title="Coming soon: pending CDP Embedded Wallet enablement."
               >
                 Coming Soon
               </Button>
@@ -79,8 +77,9 @@ function AddWalletDialog({ open, onOpenChange }: { open: boolean, onOpenChange: 
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="pointer-events-auto h-7 text-[10px] uppercase font-bold tracking-widest bg-muted/50 border-border hover:bg-primary hover:text-primary-foreground transition-all"
-                onClick={() => { onOpenChange(false); navigate("/roadmap"); }}
+                disabled
+                className="h-7 text-[10px] uppercase font-bold tracking-widest bg-muted/50 border-border opacity-80 cursor-not-allowed"
+                title="Coming soon: pending CDP Embedded Wallet enablement."
               >
                 Coming Soon
               </Button>
@@ -88,6 +87,9 @@ function AddWalletDialog({ open, onOpenChange }: { open: boolean, onOpenChange: 
           </div>
         </div>
 
+        <p className="text-xs text-muted-foreground text-center pb-1">
+          Coming soon: pending CDP Embedded Wallet enablement.
+        </p>
         <DialogFooter>
           <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} className="text-xs">Cancel</Button>
         </DialogFooter>
