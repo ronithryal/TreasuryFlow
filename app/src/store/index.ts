@@ -170,7 +170,7 @@ export interface RootState {
     tags: { purpose?: string; accountingCategory?: string; costCenter?: string; counterpartyId?: CounterpartyId; reconciliationNote?: string },
   ) => void;
   markEntriesReviewed: (entryIds: LedgerEntryId[]) => void;
-  markEntriesExported: (entryIds: LedgerEntryId[], preset: string) => void;
+  markEntriesExported: (entryIds: LedgerEntryId[], preset: string, overrideNote?: string) => void;
 
   /** Inject a pending inbound (for the deposit-routing scenario). */
   injectInbound: (inbound: { collectionAccountId: AccountId; amount: number }) => string;
@@ -708,14 +708,31 @@ export const useStore = create<RootState>()(
         }));
       },
 
-      markEntriesExported: (entryIds, preset) => {
+      markEntriesExported: (entryIds, preset, overrideNote) => {
         set((state) => ({
           ledger: state.ledger.map((l) =>
-            entryIds.includes(l.id) ? { ...l, reconciliationStatus: "exported" as ReconciliationStatus, exportedAt: state.now } : l,
+            entryIds.includes(l.id)
+              ? { 
+                  ...l, 
+                  reconciliationStatus: "exported" as ReconciliationStatus, 
+                  exportedAt: state.now,
+                  ...(overrideNote ? { reconciliationNote: overrideNote } : {})
+                }
+              : l,
           ),
           audit: [
-            { id: runtimeId("aud") as AuditId, at: state.now, actor: state.currentUserId, event: { kind: "reconciliation_exported", entryIds, preset } },
             ...state.audit,
+            { 
+              id: runtimeId("aud") as AuditId, 
+              at: state.now, 
+              actor: state.currentUserId, 
+              event: { 
+                kind: "reconciliation_exported", 
+                entryIds, 
+                preset,
+                ...(overrideNote ? { overrideNote } : {})
+              } 
+            },
           ],
         }));
       },

@@ -318,7 +318,7 @@ export type AuditEvent =
   | { kind: "intent_skipped"; intentId: IntentId; reason: string }
   | { kind: "ledger_posted"; entryIds: LedgerEntryId[]; intentId: IntentId }
   | { kind: "reconciliation_reviewed"; entryIds: LedgerEntryId[] }
-  | { kind: "reconciliation_exported"; entryIds: LedgerEntryId[]; preset: string }
+  | { kind: "reconciliation_exported"; entryIds: LedgerEntryId[]; preset: string; overrideNote?: string }
   | { kind: "demo_reset" }
   | { kind: "scenario_triggered"; scenario: string }
   | { kind: "canonical_demo_run"; intentId: IntentId; executionId: ExecutionId; mode: ExecutionMode };
