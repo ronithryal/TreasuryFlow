@@ -6,7 +6,7 @@
 import type { AgentClient } from "./perplexity";
 import { createAgentClient } from "./perplexity";
 import type { Intent, LedgerEntry, Policy, Account, Counterparty } from "@/types/domain";
-import { TagSuggestionSchema, PolicyDraftSchema } from "@/types/domain";
+import { ExplanationSchema, TagSuggestionSchema, PolicyDraftSchema } from "@/types/domain";
 import { useStore } from "@/store";
 
 let _client: AgentClient | null = null;
@@ -30,12 +30,55 @@ function startCall(surface: string): AbortSignal {
   return ctrl.signal;
 }
 
+// ---------- Deterministic fallback rationale templates ----------
+
+export function buildFallbackRationale(intent: Intent, source?: Account, dest?: Account, policy?: Policy): string {
+  const amt = intent.amount.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const src = source?.name ?? "source account";
+  const dst = dest?.name ?? "destination account";
+  const pol = policy?.name ?? "manual trigger";
+  const rail = dest?.settlementRail ?? "onchain";
+  
+  const ruleContext = intent.riskFlags.length > 0 
+    ? ` Flagged by rule: ${intent.riskFlags[0].kind}.`
+    : "";
+
+  switch (intent.type) {
+    case "sweep":
+      return `This routine sweep transferred ${amt} from ${src} to ${dst} to keep the operating balance within its target band via ${rail} rail. Triggered by policy "${pol}".${ruleContext}`;
+    case "rebalance":
+      return `This rebalance transferred ${amt} from ${src} to ${dst} to restore the minimum required balance via ${rail} rail. Triggered by policy "${pol}".${ruleContext}`;
+    case "cash_out":
+      return `This bank cash-out disbursed ${amt} from ${src} to ${dst} via ${rail} settlement rail. The payment is routed outside the onchain network to the recipient's registered bank account. Triggered by policy "${pol}".${ruleContext}`;
+    case "payout":
+      return `This vendor or contractor payout disbursed ${amt} from ${src} to ${dst} via ${rail} rail as part of a scheduled payment batch. Triggered by policy "${pol}".${ruleContext}`;
+    case "deposit_route":
+      return `This deposit routing split an inbound receipt and directed ${amt} to ${dst} via ${rail} rail per the configured allocation ratio. The split is defined by policy "${pol}".${ruleContext}`;
+    case "manual_transfer":
+      return `This manual transfer moved ${amt} from ${src} to ${dst} via ${rail} rail. Authorized by treasury operations for liquidity management.${ruleContext}`;
+    default:
+      return `Treasury transfer of ${amt} from ${src} to ${dst} via ${rail} rail.${ruleContext}`;
+  }
+}
+
 // ---------- 1. Intent rationale explainer ----------
 
 export async function explainIntent(intent: Intent, accounts: Account[], policy?: Policy): Promise<string> {
   const source = accounts.find((a) => a.id === intent.sourceAccountId);
   const dest = accounts.find((a) => a.id === intent.destinationAccountId);
-  const instructions = "You are a treasury operations assistant. Explain in 2-3 plain-English sentences why this treasury intent was created, what it does, and whether anything looks unusual. Use finance-first language, not crypto jargon.";
+
+  // Type-specific instruction prevents cross-type hallucination (e.g. cash_out described as sweep).
+  const typeInstructions: Record<string, string> = {
+    sweep: "This is a SWEEP — funds moving from an operating wallet to a reserve. Do NOT describe it as a payout or cash-out.",
+    rebalance: "This is a REBALANCE — topping up a wallet from reserve. Do NOT describe it as a sweep or payout.",
+    cash_out: "This is a BANK CASH-OUT — funds leaving the onchain system to a bank account via ACH or wire. Do NOT describe it as a sweep or onchain transfer.",
+    payout: "This is a VENDOR or CONTRACTOR PAYOUT — scheduled disbursement to an external party. Do NOT describe it as a sweep or rebalance.",
+    deposit_route: "This is a DEPOSIT ROUTING — splitting an inbound customer receipt across accounts. Do NOT describe it as an outflow or sweep.",
+    manual_transfer: "This is a MANUAL TRANSFER — treasury operator-initiated movement between accounts.",
+  };
+  const typeGuard = typeInstructions[intent.type] ?? "";
+
+  const instructions = `You are a treasury operations assistant. Explain in 2-3 plain-English sentences why this treasury payment request was created and what it does. ${typeGuard} Respond with a JSON object matching exactly: { "rationale": "string", "confidence": "high|medium|low", "flagged": boolean }. No prose outside the JSON object. Use finance-first language, not crypto jargon. If anything looks unusual, mention it briefly in the rationale and set flagged to true.`;
   const input = `Intent: ${intent.title}
 Type: ${intent.type}
 Amount: $${intent.amount.toLocaleString()} ${intent.asset}
@@ -44,7 +87,20 @@ Destination: ${dest?.name ?? intent.destinationAccountId}
 Policy: ${policy?.name ?? "Manual"}
 Rationale: ${intent.rationale}
 Risk flags: ${intent.riskFlags.length === 0 ? "None" : intent.riskFlags.map((r) => r.kind).join(", ")}`;
-  return getClient().ask({ instructions, input, signal: startCall("explain-intent-" + intent.id) });
+
+  try {
+    const text = await getClient().ask({ instructions, input, signal: startCall("explain-intent-" + intent.id) });
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = ExplanationSchema.safeParse(JSON.parse(jsonMatch[0]));
+      if (parsed.success) {
+        return parsed.data.rationale;
+      }
+    }
+    return buildFallbackRationale(intent, source, dest, policy);
+  } catch {
+    return buildFallbackRationale(intent, source, dest, policy);
+  }
 }
 
 // ---------- 2. Reconciliation tag suggester ----------

@@ -36,6 +36,7 @@ const SCENARIOS = [
 
 export function Overview() {
   const [running, setRunning] = useState<string | null>(null);
+  const [canonicalRunning, setCanonicalRunning] = useState(false);
   const [, navigate] = useLocation();
   const accounts = useStore((s) => s.accounts);
   const intents = useStore((s) => s.intents);
@@ -45,6 +46,8 @@ export function Overview() {
   const recentIntents = useStore((s) => selectors.recentIntents(s, 8));
   const pendingApprovals = useStore((s) => selectors.pendingApprovals(s));
   const policies = useStore((s) => s.policies);
+  const runCanonicalPayoutDemo = useStore((s) => s.runCanonicalPayoutDemo);
+  const canonicalDemoState = useStore((s) => s.canonicalDemoState);
 
   const total = totalManaged(accounts.filter((a) => a.accountType !== "bank_destination"));
   const reserve = totalByType(accounts, "reserve_wallet");
@@ -281,6 +284,81 @@ export function Overview() {
             </p>
           </div>
           <Button variant="outline" size="sm" disabled>Learn more</Button>
+        </CardContent>
+      </Card>
+
+      {/* Canonical golden path demo */}
+      <Card className={cn(
+        "border-primary/30 transition-all",
+        canonicalDemoState.completed ? "bg-chart-5/5 border-chart-5/30" : "bg-primary/5"
+      )}>
+        <CardContent className="py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className={`h-4 w-4 ${canonicalDemoState.completed ? "text-chart-5" : "text-primary"}`} />
+                <span className="text-sm font-bold">
+                  {canonicalDemoState.completed ? "Canonical Payout Demo — Completed" : "Run Canonical Payout Demo"}
+                </span>
+                {canonicalDemoState.completed && (
+                  <Badge variant="secondary" className="text-[10px] font-mono">server_signed_demo</Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground max-w-xl">
+                {canonicalDemoState.completed
+                  ? "The full control loop has been demonstrated. Check the Audit page for the complete evidence packet."
+                  : "One-click demo: request creation → independent approval (maker-checker) → policy validation → execution → ledger posting → reconciliation → audit evidence. No wallet required."}
+              </p>
+              {canonicalDemoState.completed && (
+                <p className="text-[11px] text-muted-foreground">
+                  Wire cash-out to Ozark Audit Co. · $9,500 · Approved by Maya Chen · Mode: server_signed_demo
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2 shrink-0">
+              {canonicalDemoState.completed ? (
+                <>
+                  <Button size="sm" variant="outline" onClick={() => navigate("/audit")}>
+                    View Evidence Packet
+                    <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={canonicalRunning}
+                    onClick={async () => {
+                      setCanonicalRunning(true);
+                      await new Promise((r) => setTimeout(r, 400));
+                      runCanonicalPayoutDemo();
+                      setCanonicalRunning(false);
+                      navigate("/audit");
+                    }}
+                  >
+                    {canonicalRunning ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : "Re-run"}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  size="sm"
+                  disabled={canonicalRunning}
+                  onClick={async () => {
+                    setCanonicalRunning(true);
+                    await new Promise((r) => setTimeout(r, 400));
+                    runCanonicalPayoutDemo();
+                    setCanonicalRunning(false);
+                    navigate("/audit");
+                  }}
+                  className="gap-2"
+                >
+                  {canonicalRunning ? (
+                    <><RefreshCw className="h-3.5 w-3.5 animate-spin" />Running…</>
+                  ) : (
+                    <><Zap className="h-3.5 w-3.5" />Run canonical demo</>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 

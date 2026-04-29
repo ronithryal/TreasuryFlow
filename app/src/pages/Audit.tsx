@@ -1,12 +1,24 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { useStore } from "@/store";
 import { jsPDF } from "jspdf";
-import { Download, FileText, ShieldCheck, Database, ExternalLink, Info } from "lucide-react";
+import {
+  CheckCircle2,
+  Download,
+  ExternalLink,
+  FileText,
+  Info,
+  ShieldCheck,
+  Database,
+  AlertCircle,
+} from "lucide-react";
 import { IS_TESTNET } from "@/web3/mode";
 import { BASESCAN_ADDR } from "@/web3/testnet";
 import { usePolicyExecutionLogs, type IntentExecutionLog } from "@/web3/usePolicyExecutionLogs";
+import { fmtDateAbs, fmtMoney } from "@/lib/format";
+import type { CanonicalDemoState } from "@/store";
 
 export function Audit() {
   const [generating, setGenerating] = useState(false);
@@ -38,10 +50,10 @@ export function Audit() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Create an exportable PDF bundle containing every transaction hash, policy evaluation, and Perplexity AI rationale for the selected period.
+              Create an exportable PDF bundle containing every transaction hash, policy evaluation, and AI rationale for the selected period.
             </p>
             <Button className="w-full text-xs h-9 gap-2" onClick={handleGenerate} disabled={generating}>
-              {generating ? "Sequencing Report..." : <><Download className="h-4 w-4" />Export Evidence Bundle</>}
+              {generating ? "Sequencing Report…" : <><Download className="h-4 w-4" />Export Evidence Bundle</>}
             </Button>
           </CardContent>
         </Card>
@@ -73,27 +85,284 @@ export function Audit() {
         </Card>
       </div>
 
-      {IS_TESTNET ? <OnchainAuditTrail /> : <MockAuditBundles />}
+      {IS_TESTNET ? <OnchainAuditTrail /> : <DemoAuditSection />}
     </div>
   );
 }
 
-// ── Mock demo (preserved) ────────────────────────────────────────────────────
+// ── Demo mode: canonical evidence packet or mock bundles ────────────────────
+
+function DemoAuditSection() {
+  const canonicalDemoState = useStore((s) => s.canonicalDemoState);
+  if (canonicalDemoState.completed) {
+    return <CanonicalDemoEvidencePacket state={canonicalDemoState} />;
+  }
+  return <MockAuditBundles />;
+}
+
+// ── Canonical demo evidence packet ─────────────────────────────────────────
+
+function CanonicalDemoEvidencePacket({ state }: { state: CanonicalDemoState }) {
+  const intents = useStore((s) => s.intents);
+  const executions = useStore((s) => s.executions);
+  const ledger = useStore((s) => s.ledger);
+  const accounts = useStore((s) => s.accounts);
+  const counterparties = useStore((s) => s.counterparties);
+  const users = useStore((s) => s.users);
+  const policies = useStore((s) => s.policies);
+
+  const intent = intents.find((i) => i.id === state.intentId);
+  const execution = executions.find((e) => e.id === state.executionId);
+
+  if (!intent || !execution) {
+    return (
+      <Card className="border-destructive/30">
+        <CardContent className="py-4 text-xs text-muted-foreground">Evidence packet not found. Run the canonical demo again.</CardContent>
+      </Card>
+    );
+  }
+
+  const sourceAccount = accounts.find((a) => a.id === intent.sourceAccountId);
+  const destAccount = accounts.find((a) => a.id === intent.destinationAccountId);
+  const policy = policies.find((p) => p.id === intent.policyId);
+  const counterparty = counterparties.find((c) => c.id === intent.counterpartyId);
+  const initiator = users.find((u) => u.id === intent.requestedBy);
+  const approval = intent.approvals[0];
+  const approver = approval ? users.find((u) => u.id === approval.approver) : null;
+  const ledgerEntries = ledger.filter((l) => l.intentId === intent.id && execution.id === l.executionId);
+
+  const isDistinctApprover = approver && initiator && approver.id !== initiator.id;
+  const railLabel = counterparty?.destinationDetails.rail === "wire" ? "Domestic Wire" : "ACH";
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          Canonical Payout Demo — Evidence Packet
+        </h2>
+        <Badge variant="secondary" className="text-[10px] font-mono gap-1">
+          <AlertCircle className="h-3 w-3" />
+          DEMO · server_signed_demo
+        </Badge>
+      </div>
+
+      {/* Disclosure banner */}
+      <Card className="border-amber-500/30 bg-amber-500/5">
+        <CardContent className="py-3 text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+          <strong>Demo disclosure:</strong> This execution uses <code>server_signed_demo</code> mode — the flow is deterministic and the transaction reference is simulated. Live execution via connected wallet or CDP Embedded Wallet is available in production.
+        </CardContent>
+      </Card>
+
+      {/* Step cards */}
+      <div className="space-y-3">
+
+        {/* Step 1: Request Created */}
+        <EvidenceStep
+          step={1}
+          title="Payment Request Created"
+          status="verified"
+          details={[
+            { label: "Payment request", value: intent.title },
+            { label: "Amount", value: fmtMoney(intent.amount, intent.asset) },
+            { label: "Rail", value: railLabel + " · " + (counterparty?.destinationDetails.primary ?? "—") },
+            { label: "Initiated by", value: `${initiator?.name ?? intent.requestedBy} · ${initiator?.role ?? "—"}` },
+            { label: "Policy", value: policy?.name ?? "Manual" },
+            { label: "Created at", value: fmtDateAbs(intent.createdAt) },
+          ]}
+          riskFlags={intent.riskFlags.map((f) => {
+            if (f.kind === "first_time_counterparty") return "First-time counterparty — no prior payment history";
+            if (f.kind === "cash_out_high_value") return `Cash-out above $${f.threshold.toLocaleString()} threshold`;
+            if (f.kind === "amount_above_normal_range") return `Amount $${f.observed.toLocaleString()} above normal max $${f.max.toLocaleString()}`;
+            return f.kind;
+          })}
+        />
+
+        {/* Step 2: Independent Approval */}
+        <EvidenceStep
+          step={2}
+          title="Independent Approval — Maker-Checker Enforced"
+          status={isDistinctApprover ? "verified" : "warning"}
+          details={[
+            { label: "Approved by", value: `${approver?.name ?? "—"} · ${approver?.role ?? "—"}` },
+            { label: "Initiator", value: `${initiator?.name ?? "—"}` },
+            { label: "Same person?", value: isDistinctApprover ? "No — distinct users ✓" : "⚠ Same user — maker-checker not satisfied" },
+            { label: "Comment", value: approval?.comment ?? "No comment" },
+            { label: "Approved at", value: approval ? fmtDateAbs(approval.at) : "—" },
+          ]}
+        />
+
+        {/* Step 3: Policy Validation */}
+        <EvidenceStep
+          step={3}
+          title="Policy Validation"
+          status="verified"
+          details={[
+            { label: "Policy", value: policy?.name ?? "—" },
+            { label: "Rule type", value: intent.policyId ? "cash-out-above ($5,000)" : "manual" },
+            { label: "Amount", value: fmtMoney(intent.amount, intent.asset) },
+            { label: "Rule result", value: "PASSED — approval satisfied" },
+            { label: "Risk flags", value: intent.riskFlags.length > 0 ? `${intent.riskFlags.length} flag(s) — reviewed` : "None" },
+          ]}
+        />
+
+        {/* Step 4: Execution */}
+        <EvidenceStep
+          step={4}
+          title="Execution"
+          status="verified"
+          details={[
+            { label: "Mode", value: execution.executionMode ?? "simulated_demo" },
+            { label: "Reference", value: execution.txReference ?? "—" },
+            { label: "Source", value: sourceAccount?.name ?? "—" },
+            { label: "Destination", value: destAccount?.name ?? "—" },
+            ...(counterparty?.bankDetails ? [
+              { label: "Bank", value: counterparty.bankDetails.bankName },
+              { label: "Account", value: counterparty.bankDetails.accountNumberDisplay },
+              { label: "Settlement ETA", value: counterparty.bankDetails.settlementEta },
+              { label: "Est. fee", value: `$${counterparty.bankDetails.estimatedFeeUsd}` },
+            ] : []),
+            { label: "Completed at", value: execution.completedAt ? fmtDateAbs(execution.completedAt) : "—" },
+          ]}
+        />
+
+        {/* Step 5: Ledger Posted */}
+        {ledgerEntries.length > 0 && (
+          <EvidenceStep
+            step={5}
+            title="Ledger Posted"
+            status="verified"
+            details={[
+              ...ledgerEntries.map((entry) => ({
+                label: entry.direction === "outflow" ? "Outflow" : entry.direction === "inflow" ? "Inflow" : "Internal",
+                value: `${fmtMoney(entry.amount, entry.asset)} · ${accounts.find((a) => a.id === entry.accountId)?.name ?? "—"}`,
+              })),
+              { label: "Category", value: ledgerEntries[0]?.accountingCategory ?? "Missing" },
+              { label: "Purpose", value: ledgerEntries[0]?.purpose ?? "Missing" },
+              { label: "Cost center", value: ledgerEntries[0]?.costCenter ?? "—" },
+              { label: "Reconciliation", value: ledgerEntries[0]?.reconciliationStatus ?? "—" },
+            ]}
+          />
+        )}
+
+        {/* Step 6: Reconciliation Ready */}
+        <EvidenceStep
+          step={6}
+          title="Reconciliation Ready"
+          status={ledgerEntries[0]?.reconciliationStatus === "tagged" ? "verified" : "pending"}
+          details={[
+            { label: "Status", value: ledgerEntries[0]?.reconciliationStatus ?? "—" },
+            { label: "Entries", value: `${ledgerEntries.length} posted` },
+            { label: "Next step", value: "Available for controller review and ERP export" },
+          ]}
+        />
+      </div>
+
+      {/* Non-technical proof interpreter */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2 text-primary">
+            <Info className="h-4 w-4" />
+            <span className="text-xs font-bold">What did this prove?</span>
+          </div>
+        </CardHeader>
+        <CardContent className="text-xs text-muted-foreground leading-relaxed space-y-2">
+          <p>
+            This payment was <strong>requested by {initiator?.name ?? "one person"}</strong> and <strong>approved by {approver?.name ?? "a different person"}</strong> before any funds moved — enforcing the maker-checker control. No single individual can authorize their own payment.
+          </p>
+          <p>
+            The <strong>policy engine validated the approval rule</strong> (cash-out above $5,000 requires independent authorization) before execution was permitted. The first-time counterparty flag required the approver to explicitly confirm the recipient's bank details.
+          </p>
+          <p>
+            Every step — request creation, approval decision, policy validation, execution, and ledger posting — is recorded in the <strong>immutable audit log</strong> with timestamps and actor identity. In production this chain is anchored onchain via IntentRegistry on Base Sepolia.
+          </p>
+          <p className="text-[10px] italic">
+            Demo mode: execution reference is simulated ({execution.executionMode}). Connect a wallet to execute against the live IntentRegistry contract on Base Sepolia.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ── Shared step card component ──────────────────────────────────────────────
+
+function EvidenceStep({
+  step,
+  title,
+  status,
+  details,
+  riskFlags,
+}: {
+  step: number;
+  title: string;
+  status: "verified" | "warning" | "pending";
+  details: { label: string; value: string }[];
+  riskFlags?: string[];
+}) {
+  const statusColor = {
+    verified: "text-chart-5",
+    warning: "text-amber-500",
+    pending: "text-muted-foreground",
+  }[status];
+
+  const StatusIcon = status === "verified" ? CheckCircle2 : status === "warning" ? AlertCircle : Info;
+
+  return (
+    <Card className="border-border">
+      <CardContent className="py-4 space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
+            {step}
+          </div>
+          <p className="text-sm font-semibold flex-1">{title}</p>
+          <StatusIcon className={`h-4 w-4 ${statusColor}`} />
+        </div>
+
+        {riskFlags && riskFlags.length > 0 && (
+          <div className="space-y-1">
+            {riskFlags.map((flag) => (
+              <div key={flag} className="flex items-center gap-2 text-[11px] text-amber-600 dark:text-amber-400 bg-amber-500/5 border border-amber-500/20 rounded px-2 py-1">
+                <AlertCircle className="h-3 w-3 shrink-0" />
+                {flag}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+          {details.map(({ label, value }) => (
+            <div key={label} className="text-xs">
+              <span className="text-muted-foreground">{label}</span>
+              <p className="mt-0.5 font-medium truncate">{value}</p>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Mock demo bundles (shown before canonical run) ───────────────────────────
 
 function MockAuditBundles() {
   const BUNDLES = [
-    { id: "EB-2024-04-27-01", type: "Monthly Close", events: 142, status: "finalized", hash: "0x82f...a12b" },
-    { id: "EB-2024-04-26-02", type: "Policy Change", events: 1, status: "finalized", hash: "0x31a...e921" },
-    { id: "EB-2024-04-25-01", type: "Anomaly Report", events: 3, status: "finalized", hash: "0x992...c81d" },
+    { id: "EB-2026-04-27-01", type: "Monthly Close", events: 142, status: "finalized", hash: "0x82f…a12b", note: "Run the canonical payout demo above to generate a real evidence packet." },
+    { id: "EB-2026-04-26-02", type: "Policy Change", events: 1, status: "finalized", hash: "0x31a…e921", note: null },
+    { id: "EB-2026-04-25-01", type: "Anomaly Report", events: 3, status: "finalized", hash: "0x992…c81d", note: null },
   ];
+
   return (
     <div id="audit-bundles" data-tour="audit-bundles" className="space-y-3">
-      <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Recent Evidence Bundles</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Recent Evidence Bundles</h2>
+        <span className="text-[10px] text-muted-foreground italic">Run the canonical payout demo to generate a live evidence packet</span>
+      </div>
       <div className="space-y-2">
         {BUNDLES.map((b) => (
           <div
             key={b.id}
-            data-tour={b.id === "EB-2024-04-27-01" ? "audit-bundle-row" : undefined}
+            data-tour={b.id === "EB-2026-04-27-01" ? "audit-bundle-row" : undefined}
             className="flex items-center justify-between p-4 rounded-xl border border-border bg-card hover:bg-muted/20 transition-all cursor-pointer group"
           >
             <div className="flex items-center gap-4">
@@ -103,11 +372,12 @@ function MockAuditBundles() {
               <div>
                 <p className="text-sm font-bold">{b.type}</p>
                 <p className="text-[10px] font-mono text-muted-foreground">{b.id} · {b.events} events recorded</p>
+                {b.note && <p className="text-[10px] text-primary/60 mt-0.5">{b.note}</p>}
               </div>
             </div>
             <div className="flex items-center gap-6">
               <div className="text-right hidden sm:block">
-                <p className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">Onchain Hash</p>
+                <p className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">Hash</p>
                 <p className="text-[11px] font-mono text-foreground/70">{b.hash}</p>
               </div>
               <div className="p-2 rounded-lg bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-all">
@@ -129,7 +399,6 @@ function OnchainAuditTrail() {
 
   return (
     <div className="space-y-4">
-      {/* Section header */}
       <div className="flex items-center justify-between">
         <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
           Onchain Payment Executions · Base Sepolia
@@ -147,7 +416,6 @@ function OnchainAuditTrail() {
         </div>
       </div>
 
-      {/* Explainer */}
       {explainerOpen && (
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="py-4 text-xs text-muted-foreground leading-relaxed space-y-2">
@@ -171,14 +439,12 @@ function OnchainAuditTrail() {
         </Card>
       )}
 
-      {/* Error */}
       {error && (
         <Card className="border-destructive/40 bg-destructive/5">
           <CardContent className="py-3 text-xs text-destructive">{error}</CardContent>
         </Card>
       )}
 
-      {/* Empty state */}
       {logs.length === 0 && !loading && (
         <Card>
           <CardContent className="py-6 text-center text-xs text-muted-foreground space-y-1">
@@ -188,7 +454,6 @@ function OnchainAuditTrail() {
         </Card>
       )}
 
-      {/* Execution cards */}
       <div className="space-y-3">
         {logs.map((log) => (
           <IntentExecutionCard key={log.executionTxHash} log={log} />
@@ -209,7 +474,6 @@ function IntentExecutionCard({ log }: { log: IntentExecutionLog }) {
   return (
     <Card className="border-border hover:border-primary/40 transition-colors">
       <CardContent className="py-4 space-y-3">
-        {/* Top row: policy + amount */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-xl bg-muted flex items-center justify-center text-muted-foreground">
@@ -233,7 +497,6 @@ function IntentExecutionCard({ log }: { log: IntentExecutionLog }) {
           </div>
         </div>
 
-        {/* Address grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
           <div className="p-2 rounded-lg bg-muted/40 space-y-0.5">
             <p className="text-muted-foreground font-medium uppercase tracking-tight text-[9px]">Initiator</p>
@@ -253,7 +516,6 @@ function IntentExecutionCard({ log }: { log: IntentExecutionLog }) {
                   ? "Treasury Admin demo signer"
                   : short(log.approver)}
               </span>
-              {/* Tooltip */}
               <div className="absolute hidden group-hover:block bottom-full left-0 z-10 w-56 p-2 rounded-lg bg-popover border border-border text-[10px] text-muted-foreground shadow-lg mb-1">
                 In production, approval would be signed by an authorized approver wallet via Safe,
                 WalletConnect, or CDP Embedded Wallets.
@@ -272,7 +534,6 @@ function IntentExecutionCard({ log }: { log: IntentExecutionLog }) {
           </div>
         </div>
 
-        {/* Tx hashes */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
           {log.approvalTxHash && (
             <a

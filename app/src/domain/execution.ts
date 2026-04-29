@@ -11,6 +11,7 @@
 import type {
   Execution,
   ExecutionId,
+  ExecutionMode,
   Intent,
   LedgerEntry,
   LedgerEntryId,
@@ -26,7 +27,7 @@ export interface ExecuteResult {
   resumedFromPending?: boolean;
 }
 
-export function executeIntent(intent: Intent, snap: WorldSnapshot, opts: { now: string; partnerSettle?: boolean }): ExecuteResult {
+export function executeIntent(intent: Intent, snap: WorldSnapshot, opts: { now: string; partnerSettle?: boolean; mode?: ExecutionMode; skipTwoStep?: boolean }): ExecuteResult {
   const source = snap.accounts.find((a) => a.id === intent.sourceAccountId);
   const dest = snap.accounts.find((a) => a.id === intent.destinationAccountId);
   if (!source || !dest) {
@@ -43,7 +44,8 @@ export function executeIntent(intent: Intent, snap: WorldSnapshot, opts: { now: 
   }
 
   const isCashOut = intent.type === "cash_out";
-  const useTwoStep = isCashOut && !opts.partnerSettle;
+  const useTwoStep = isCashOut && !opts.partnerSettle && !opts.skipTwoStep;
+  const execMode: ExecutionMode = opts.mode ?? "simulated_demo";
 
   const executionId = runtimeId("exe") as ExecutionId;
 
@@ -52,6 +54,7 @@ export function executeIntent(intent: Intent, snap: WorldSnapshot, opts: { now: 
       id: executionId,
       intentId: intent.id,
       executionType: "partner_pending",
+      executionMode: execMode,
       resultSummary: "Partner bank rail acknowledged. Waiting for settlement.",
       txReference: `prtnr_${runtimeId("ref")}`,
       startedAt: opts.now,
@@ -63,12 +66,19 @@ export function executeIntent(intent: Intent, snap: WorldSnapshot, opts: { now: 
     };
   }
 
-  const txRef = isCashOut ? `bank_${runtimeId("ref")}` : `0x${runtimeId("tx")}`;
+  const txRef = isCashOut
+    ? (execMode === "server_signed_demo" ? `demo_wire_${runtimeId("ref")}` : `bank_${runtimeId("ref")}`)
+    : `0x${runtimeId("tx")}`;
   const exec: Execution = {
     id: executionId,
     intentId: intent.id,
     executionType: "completed",
-    resultSummary: isCashOut ? "Bank cash-out settled via partner rail." : "Onchain transfer settled.",
+    executionMode: execMode,
+    resultSummary: isCashOut
+      ? (execMode === "server_signed_demo"
+          ? "Bank wire settled — server-signed demo execution. [DEMO MODE]"
+          : "Bank cash-out settled via partner rail.")
+      : "Onchain transfer settled.",
     txReference: txRef,
     startedAt: opts.now,
     completedAt: opts.now,

@@ -86,6 +86,9 @@ export type IntentStatus = (typeof IntentStatuses)[number];
 export const ExecutionTypes = ["simulated", "partner_pending", "completed", "failed", "skipped"] as const;
 export type ExecutionType = (typeof ExecutionTypes)[number];
 
+export const ExecutionModes = ["wallet_live", "server_signed_demo", "simulated_demo"] as const;
+export type ExecutionMode = (typeof ExecutionModes)[number];
+
 export const CounterpartyTypes = [
   "vendor",
   "contractor",
@@ -225,11 +228,24 @@ export interface Execution {
   id: ExecutionId;
   intentId: IntentId;
   executionType: ExecutionType;
+  executionMode?: ExecutionMode;
   resultSummary: string;
   txReference?: string;
   failureReason?: string;
   startedAt: string;
   completedAt?: string;
+}
+
+/** Bank account details for ACH/wire counterparties. Displayed in approval UI and audit trail. */
+export interface BankDetails {
+  bankName: string;
+  routingDisplay: string;
+  accountNumberDisplay: string;
+  accountType: "checking" | "savings";
+  settlementEta: string;
+  estimatedFeeUsd: number;
+  returnsNote?: string;
+  accountingTreatment?: string;
 }
 
 export interface Counterparty {
@@ -245,6 +261,8 @@ export interface Counterparty {
   /** First-seen timestamp. If the system has never paid this counterparty,
       first-time-counterparty rule applies on the next intent. */
   firstSeenAt?: string;
+  /** Bank settlement details for ACH/wire counterparties. */
+  bankDetails?: BankDetails;
 }
 
 export interface LedgerEntry {
@@ -302,7 +320,8 @@ export type AuditEvent =
   | { kind: "reconciliation_reviewed"; entryIds: LedgerEntryId[] }
   | { kind: "reconciliation_exported"; entryIds: LedgerEntryId[]; preset: string }
   | { kind: "demo_reset" }
-  | { kind: "scenario_triggered"; scenario: string };
+  | { kind: "scenario_triggered"; scenario: string }
+  | { kind: "canonical_demo_run"; intentId: IntentId; executionId: ExecutionId; mode: ExecutionMode };
 
 export interface AuditLogEntry {
   id: AuditId;
@@ -338,6 +357,14 @@ export interface WorldSnapshot {
 }
 
 // ---------- Zod schemas for runtime validation (used by AI surfaces) ----------
+
+export const ExplanationSchema = z.object({
+  rationale: z.string().min(1).describe("The generated explanation or rationale for the request in plain English."),
+  confidence: z.enum(["high", "medium", "low"]).optional().describe("Confidence level of the explanation."),
+  flagged: z.boolean().optional().describe("Whether the request seems unusually risky or anomalous based on context."),
+});
+export type ExplanationPayload = z.infer<typeof ExplanationSchema>;
+
 export const PolicyDraftSchema = z.object({
   name: z.string().min(1).max(120),
   type: z.enum(PolicyTypes),

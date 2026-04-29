@@ -14,6 +14,7 @@ import type {
   Account,
   AccountId,
   ApprovalDecision,
+  ApprovalRule,
   AuditId,
   AuditLogEntry,
   Counterparty,
@@ -93,6 +94,13 @@ export interface TestnetState {
   executions: TestnetExecution[];
 }
 
+export interface CanonicalDemoState {
+  completed: boolean;
+  intentId?: IntentId;
+  executionId?: ExecutionId;
+  completedAt?: string;
+}
+
 export interface RootState {
   schemaVersion: number;
   // ----- Data -----
@@ -115,6 +123,7 @@ export interface RootState {
   audit: AuditLogEntry[];
   ui: UiState;
   testnet: TestnetState;
+  canonicalDemoState: CanonicalDemoState;
 
   // ----- Actions -----
   resetToSeed: () => void;
@@ -142,7 +151,13 @@ export interface RootState {
   bulkApprove: (intentIds: IntentId[]) => void;
 
   /** Execute an approved intent. Posts ledger entries on success. */
-  executeApprovedIntent: (intentId: IntentId) => Execution | null;
+  executeApprovedIntent: (intentId: IntentId, opts?: { mode?: import("@/types/domain").ExecutionMode; skipTwoStep?: boolean }) => Execution | null;
+
+  /** Run the canonical payout demo: reset → approve Ozark intent → execute → audit evidence. */
+  runCanonicalPayoutDemo: () => void;
+
+  /** Update a policy's approval rule (used by editable approval matrix in Settings). */
+  updatePolicyApprovalRule: (policyId: PolicyId, rule: ApprovalRule) => void;
   /** Resolve a partner_pending execution to completed (cash-out 2nd step). */
   settlePartnerPending: (executionId: ExecutionId) => void;
 
@@ -265,6 +280,7 @@ export const useStore = create<RootState>()(
       currentStep: 0,
       ui: { forceMockAi: false, darkMode: false, demoEntered: false },
       testnet: { connectedAddress: null, ethBalance: 0, usdcBalance: 0, hydrated: false, executions: [] },
+      canonicalDemoState: { completed: false },
 
       resetToSeed: () => {
         const fresh = fromSeed(SEED);
@@ -277,6 +293,7 @@ export const useStore = create<RootState>()(
         set({
           ...fresh,
           audit: [auditEntry, ...fresh.audit],
+          canonicalDemoState: { completed: false },
         });
       },
 
@@ -467,12 +484,12 @@ export const useStore = create<RootState>()(
         }
       },
 
-      executeApprovedIntent: (intentId) => {
+      executeApprovedIntent: (intentId, opts) => {
         const state = get();
         const intent = state.intents.find((i) => i.id === intentId);
         if (!intent) return null;
         if (intent.status !== "approved" && intent.status !== "scheduled") return null;
-        const result = executeIntent({ ...intent, status: "executing" }, snapOf(state), { now: state.now });
+        const result = executeIntent({ ...intent, status: "executing" }, snapOf(state), { now: state.now, mode: opts?.mode, skipTwoStep: opts?.skipTwoStep });
         const updatedIntents = state.intents.map((i) => (i.id === intent.id ? result.intent : i));
         const updatedExecutions = [...state.executions, result.execution];
         const updatedLedger = [...state.ledger, ...result.ledger];
@@ -526,6 +543,122 @@ export const useStore = create<RootState>()(
           ledger: [...state.ledger, ...result.ledger],
           accounts: updatedAccounts,
         });
+      },
+
+      runCanonicalPayoutDemo: () => {
+        // 1. Reset to seed state so demo starts clean
+        get().resetToSeed();
+        const state = get();
+        const newNow = dayjs(state.now).add(2, "minute").toISOString();
+        set({ now: newNow });
+
+        // 2. The canonical scenario: Ozark Audit Co. wire cash-out ($9,500)
+        //    Initiator: Sam Rivera (u_ops) — from seed, already set on int_pend_001
+        //    Approver: Maya Chen (u_founder) — current user, distinct from initiator → maker-checker
+        const CANONICAL_INTENT_ID = "int_pend_001" as IntentId;
+        const APPROVER_ID = "u_founder" as UserId; // Maya Chen
+        const SYSTEM_ID = "u_system" as UserId;
+
+        const intent = get().intents.find((i) => i.id === CANONICAL_INTENT_ID);
+        if (!intent) return;
+
+        const policy = get().policies.find((p) => p.id === intent.policyId);
+        const snap = snapOf(get());
+        const required = resolveApprovalRule(intent, policy, snap);
+
+        // 3. Apply approval decision (Maya Chen approves Sam's intent → valid maker-checker)
+        const decisionRecord: ApprovalDecision & { id: AuditId } = {
+          id: runtimeId("dec") as AuditId,
+          approver: APPROVER_ID,
+          decision: "approve",
+          comment: "First-time counterparty verified — wire details confirmed, bank on record. Approved for settlement.",
+          at: newNow,
+        };
+        const approvalResult = applyDecision(intent, decisionRecord, required);
+        if (approvalResult.error || !approvalResult.readyToExecute) return;
+
+        const intentsAfterApproval = get().intents.map((i) => (i.id === CANONICAL_INTENT_ID ? approvalResult.intent : i));
+        const approvalAudit: AuditLogEntry = {
+          id: runtimeId("aud") as AuditId,
+          at: newNow,
+          actor: APPROVER_ID,
+          event: { kind: "intent_decision", intentId: CANONICAL_INTENT_ID, decision: decisionRecord },
+        };
+        set({ intents: intentsAfterApproval, audit: [approvalAudit, ...get().audit] });
+
+        // 4. Execute with server_signed_demo mode (skip two-step for clean demo flow)
+        const execState = get();
+        const approvedIntent = execState.intents.find((i) => i.id === CANONICAL_INTENT_ID)!;
+        const result = executeIntent(
+          { ...approvedIntent, status: "executing" },
+          snapOf(execState),
+          { now: newNow, mode: "server_signed_demo", skipTwoStep: true },
+        );
+
+        const updatedAccounts = applyLedgerToBalances(execState.accounts, result.ledger);
+
+        // 5. Tag ledger entries with full accounting metadata for reconciliation readiness
+        const taggedLedger = result.ledger.map((entry) => ({
+          ...entry,
+          purpose: "Audit services — annual compliance review",
+          accountingCategory: "Professional Services",
+          costCenter: "FIN-1",
+          reconciliationStatus: "tagged" as const,
+        }));
+
+        const execAudit: AuditLogEntry[] = [
+          {
+            id: runtimeId("aud") as AuditId,
+            at: newNow,
+            actor: SYSTEM_ID,
+            event: { kind: "intent_executed", intentId: CANONICAL_INTENT_ID, executionId: result.execution.id },
+          },
+          ...(taggedLedger.length > 0
+            ? [
+                {
+                  id: runtimeId("aud") as AuditId,
+                  at: newNow,
+                  actor: SYSTEM_ID,
+                  event: {
+                    kind: "ledger_posted" as const,
+                    entryIds: taggedLedger.map((l) => l.id),
+                    intentId: CANONICAL_INTENT_ID,
+                  },
+                },
+              ]
+            : []),
+          {
+            id: runtimeId("aud") as AuditId,
+            at: newNow,
+            actor: APPROVER_ID,
+            event: {
+              kind: "canonical_demo_run",
+              intentId: CANONICAL_INTENT_ID,
+              executionId: result.execution.id,
+              mode: "server_signed_demo",
+            },
+          },
+        ];
+
+        set({
+          intents: execState.intents.map((i) => (i.id === CANONICAL_INTENT_ID ? result.intent : i)),
+          executions: [...execState.executions, result.execution],
+          ledger: [...execState.ledger, ...taggedLedger],
+          accounts: updatedAccounts,
+          audit: [...execAudit, ...execState.audit],
+          canonicalDemoState: {
+            completed: true,
+            intentId: CANONICAL_INTENT_ID,
+            executionId: result.execution.id,
+            completedAt: newNow,
+          },
+        });
+      },
+
+      updatePolicyApprovalRule: (policyId, rule) => {
+        set((state) => ({
+          policies: state.policies.map((p) => (p.id === policyId ? { ...p, approvalRule: rule } : p)),
+        }));
       },
 
       cancelIntent: (intentId, reason) => {

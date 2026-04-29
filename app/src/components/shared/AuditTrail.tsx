@@ -26,6 +26,8 @@ function describe(entry: AuditLogEntry): string {
       return "Demo data reset";
     case "scenario_triggered":
       return `Scenario triggered: ${e.scenario}`;
+    case "canonical_demo_run":
+      return `Canonical payout demo executed · ${e.mode}`;
   }
 }
 
