@@ -6,7 +6,6 @@ import {
   INTENT_REGISTRY_ABI,
   INTENT_REGISTRY_ADDRESS,
   TREASURY_VAULT_ADDRESS,
-  DEFAULT_DEMO_POLICY_ID,
   DEMO_POLICIES,
   toUsdcUnits,
 } from "./testnet";
@@ -17,6 +16,26 @@ import type { Intent } from "@/types/domain";
 // This is the deployer/owner wallet (the same account that deployed the contracts).
 export const DEMO_RECIPIENT_ADDRESS =
   "0x240fb77d1c6bbe72bb59a08b379c7d94e905839b" as const;
+
+/**
+ * Pick the smallest demo policy whose maxAmount fits the intent.
+ * VENDOR_PAYMENT (≤$10K) → TREASURY_SWEEP (≤$100K) → YIELD_DEPOSIT (≤$500K).
+ * Required because PolicyEngine rejects createIntent when amount > policy.maxAmount,
+ * and a hardcoded VENDOR_PAYMENT default reverts for anything above $10K.
+ */
+function pickPolicyForAmount(amountUnits: bigint): { id: bigint; name: string } {
+  const ordered = [
+    DEMO_POLICIES.VENDOR_PAYMENT,
+    DEMO_POLICIES.TREASURY_SWEEP,
+    DEMO_POLICIES.YIELD_DEPOSIT,
+  ];
+  for (const p of ordered) {
+    if (amountUnits <= BigInt(p.maxAmount)) return { id: p.id, name: p.name };
+  }
+  // Fallback to the largest policy. If even that's too small, createIntent will
+  // revert and our receipt-status guard will surface a clear error.
+  return { id: DEMO_POLICIES.YIELD_DEPOSIT.id, name: DEMO_POLICIES.YIELD_DEPOSIT.name };
+}
 
 /**
  * P0 Golden Path — 4-step onchain flow for VITE_APP_MODE=testnet:
@@ -68,11 +87,21 @@ export function useTestnetExecution() {
 
     const amount = toUsdcUnits(intent.amount);
     const destination = opts?.destination ?? DEMO_RECIPIENT_ADDRESS;
-    const policyId = opts?.policyId ?? DEFAULT_DEMO_POLICY_ID;
-
-    // Resolve policy name for display
-    const policyName =
-      Object.values(DEMO_POLICIES).find((p) => p.id === policyId)?.name ?? `Policy #${policyId}`;
+    // Pick a policy whose maxAmount accommodates this intent unless the caller
+    // explicitly overrides. Using the hardcoded VENDOR_PAYMENT default for
+    // every intent caused createIntent to revert silently for any amount > $10K
+    // (e.g. the rebalance intent at $10,200), which then surfaced downstream
+    // as approveIntent → "Not found" because the intent was never created.
+    const picked = opts?.policyId
+      ? {
+          id: opts.policyId,
+          name:
+            Object.values(DEMO_POLICIES).find((p) => p.id === opts.policyId)?.name ??
+            `Policy #${opts.policyId}`,
+        }
+      : pickPolicyForAmount(amount);
+    const policyId = picked.id;
+    const policyName = picked.name;
 
     setIsPending(true);
     setStep("creating");
@@ -96,7 +125,16 @@ export function useTestnetExecution() {
         functionName: "createIntent",
         args: [policyId, amount, destination],
       });
-      await publicClient.waitForTransactionReceipt({ hash: createHash });
+      const createReceipt = await publicClient.waitForTransactionReceipt({ hash: createHash });
+      // writeContractAsync resolves on tx submission, not on success.
+      // waitForTransactionReceipt resolves with status: 'reverted' for failed txs,
+      // so we MUST check status explicitly before proceeding — otherwise downstream
+      // calls reference an intent that was never created.
+      if (createReceipt.status !== "success") {
+        throw new Error(
+          `createIntent reverted onchain. Likely cause: amount $${intent.amount.toLocaleString()} exceeds policy "${policyName}" max ($${(Number(DEMO_POLICIES.VENDOR_PAYMENT.maxAmount) / 1e6).toLocaleString()}/$${(Number(DEMO_POLICIES.TREASURY_SWEEP.maxAmount) / 1e6).toLocaleString()}/$${(Number(DEMO_POLICIES.YIELD_DEPOSIT.maxAmount) / 1e6).toLocaleString()}).`,
+        );
+      }
 
       // ── Step 2: approve mUSDC allowance ─────────────────────────────────
       setStep("approving-usdc");
@@ -106,7 +144,10 @@ export function useTestnetExecution() {
         functionName: "approve",
         args: [TREASURY_VAULT_ADDRESS, amount],
       });
-      await publicClient.waitForTransactionReceipt({ hash: approveHash });
+      const approveReceipt = await publicClient.waitForTransactionReceipt({ hash: approveHash });
+      if (approveReceipt.status !== "success") {
+        throw new Error("USDC approval reverted onchain. Check your mUSDC balance on Base Sepolia.");
+      }
 
       // ── Step 3: demo approver (server-side) ──────────────────────────────
       setStep("demo-approver");
@@ -138,6 +179,11 @@ export function useTestnetExecution() {
         args: [onchainIntentId],
       });
       const execReceipt = await publicClient.waitForTransactionReceipt({ hash: execHash });
+      if (execReceipt.status !== "success") {
+        throw new Error(
+          `executeIntent reverted onchain. The intent was created and approved but execution failed — typically insufficient mUSDC balance for the transfer.`,
+        );
+      }
 
       setLastTxHash(execHash);
       setStep("done");
