@@ -58,6 +58,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const intentIdBigInt = BigInt(intentId);
+  const usingSeededFallback = !process.env.DEMO_APPROVER_KEY;
 
   try {
     const key = rawKey.startsWith("0x") ? rawKey : `0x${rawKey}`;
@@ -94,7 +95,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (err) {
     console.error("[demo-approve] error:", err);
     const message = err instanceof Error ? err.message : String(err);
-    // Surface specific revert messages for debugging
+
+    // Demo-mode graceful fallback: when the seeded fallback approver has no ETH
+    // on Base Sepolia, return a synthesized approval response so the demo flow
+    // can still produce an evidence packet. The client sees `simulated: true`
+    // and skips the on-chain executeIntent step (Step 4), using the real
+    // createIntent tx hash from Step 1 as the audit reference.
+    //
+    // This only kicks in when DEMO_APPROVER_KEY is unset (we're using the
+    // seeded fallback). If the operator did set their own DEMO_APPROVER_KEY
+    // and that key is unfunded, we surface the error verbatim — that's a
+    // misconfiguration, not the demo path.
+    const isInsufficientFunds =
+      message.includes("insufficient funds") || message.includes("exceeds the balance");
+    if (usingSeededFallback && isInsufficientFunds) {
+      const seededAccount = privateKeyToAccount(
+        (rawKey.startsWith("0x") ? rawKey : `0x${rawKey}`) as `0x${string}`,
+      );
+      return res.status(200).json({
+        approvalTxHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
+        approverAddress: seededAccount.address,
+        simulated: true,
+        simulatedReason:
+          "Seeded demo approver has no ETH on Base Sepolia. Set DEMO_APPROVER_KEY to a funded address (or fund " +
+          seededAccount.address +
+          ") for real onchain approval.",
+      });
+    }
+
     return res.status(500).json({ error: `Approval failed: ${message}` });
   }
 }

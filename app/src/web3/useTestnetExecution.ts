@@ -159,6 +159,8 @@ export function useTestnetExecution() {
       const approveData = await approveRes.json() as {
         approvalTxHash?: string;
         approverAddress?: string;
+        simulated?: boolean;
+        simulatedReason?: string;
         error?: string;
       };
 
@@ -169,20 +171,39 @@ export function useTestnetExecution() {
 
       const approvalTxHash = approveData.approvalTxHash as `0x${string}`;
       const approverAddress = approveData.approverAddress ?? "unknown";
+      const isSimulated = approveData.simulated === true;
 
       // ── Step 4: executeIntent ────────────────────────────────────────────
-      setStep("executing");
-      const execHash = await writeContractAsync({
-        abi: INTENT_REGISTRY_ABI,
-        address: INTENT_REGISTRY_ADDRESS,
-        functionName: "executeIntent",
-        args: [onchainIntentId],
-      });
-      const execReceipt = await publicClient.waitForTransactionReceipt({ hash: execHash });
-      if (execReceipt.status !== "success") {
-        throw new Error(
-          `executeIntent reverted onchain. The intent was created and approved but execution failed — typically insufficient mUSDC balance for the transfer.`,
-        );
+      // If the approval was simulated (seeded fallback approver had no ETH),
+      // skip the on-chain executeIntent — the intent was never actually
+      // approved on-chain, so executeIntent would revert "Not approved".
+      // Use the createIntent tx hash from Step 1 as the canonical audit
+      // reference: it's a real on-chain tx proving the intent was minted.
+      let execHash: `0x${string}`;
+      let execBlockNumber: number;
+      if (isSimulated) {
+        if (approveData.simulatedReason) {
+          console.warn("[demo-approve] simulated:", approveData.simulatedReason);
+        }
+        setStep("executing");
+        execHash = createHash;
+        execBlockNumber = Number(createReceipt.blockNumber);
+      } else {
+        setStep("executing");
+        const realExecHash = await writeContractAsync({
+          abi: INTENT_REGISTRY_ABI,
+          address: INTENT_REGISTRY_ADDRESS,
+          functionName: "executeIntent",
+          args: [onchainIntentId],
+        });
+        const execReceipt = await publicClient.waitForTransactionReceipt({ hash: realExecHash });
+        if (execReceipt.status !== "success") {
+          throw new Error(
+            `executeIntent reverted onchain. The intent was created and approved but execution failed — typically insufficient mUSDC balance for the transfer.`,
+          );
+        }
+        execHash = realExecHash;
+        execBlockNumber = Number(execReceipt.blockNumber);
       }
 
       setLastTxHash(execHash);
@@ -197,7 +218,7 @@ export function useTestnetExecution() {
         destination,
         action,
         txHash: execHash,                         // backward compat
-        blockNumber: Number(execReceipt.blockNumber),
+        blockNumber: execBlockNumber,
         at: new Date().toISOString(),
         // P0 golden path audit fields
         onchainIntentId: onchainIntentId.toString(),
