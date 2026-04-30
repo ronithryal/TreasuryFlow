@@ -80,6 +80,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       abi: INTENT_REGISTRY_ABI,
       functionName: "approveIntent",
       args: [intentIdBigInt],
+      chain: baseSepolia,
     });
 
     // Wait for confirmation before returning — ensures approval is onchain
