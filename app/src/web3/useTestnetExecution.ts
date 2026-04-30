@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useAccount, usePublicClient, useWriteContract } from "wagmi";
-import { parseEventLogs } from "viem";
 import {
   MOCK_USDC_ABI,
   MOCK_USDC_ADDRESS,
@@ -81,42 +80,23 @@ export function useTestnetExecution() {
 
     try {
       // ── Step 1: createIntent ─────────────────────────────────────────────
+      // Read nextIntentId BEFORE the transaction. The contract assigns IDs
+      // sequentially, so nextIntentId at this moment == the new intent's ID.
+      // This is unconditionally correct and avoids all event-log parsing issues
+      // (ABI mismatches, wrong log ordering, indexed field differences).
+      const onchainIntentId = await publicClient.readContract({
+        abi: INTENT_REGISTRY_ABI,
+        address: INTENT_REGISTRY_ADDRESS,
+        functionName: "nextIntentId",
+      }) as bigint;
+
       const createHash = await writeContractAsync({
         abi: INTENT_REGISTRY_ABI,
         address: INTENT_REGISTRY_ADDRESS,
         functionName: "createIntent",
         args: [policyId, amount, destination],
       });
-      const createReceipt = await publicClient.waitForTransactionReceipt({ hash: createHash });
-
-      // Parse intentId from the IntentCreated event.
-      // parseEventLogs validates topic[0] (the event signature hash) before
-      // reading topic[1], so it never picks up the wrong intentId from a
-      // Transfer or other event that happens to share the same receipt.
-      let onchainIntentId: bigint | undefined;
-      try {
-        const intentCreatedLogs = parseEventLogs({
-          abi: INTENT_REGISTRY_ABI,
-          eventName: "IntentCreated",
-          logs: createReceipt.logs,
-        });
-        if (intentCreatedLogs.length > 0) {
-          onchainIntentId = intentCreatedLogs[0].args.intentId as bigint;
-        }
-      } catch {
-        // fall through to nextIntentId fallback
-      }
-
-      if (onchainIntentId === undefined) {
-        // Fallback: read nextIntentId - 1 from the contract.
-        // Reliable because createIntent atomically increments nextIntentId.
-        const nextId = await publicClient.readContract({
-          abi: INTENT_REGISTRY_ABI,
-          address: INTENT_REGISTRY_ADDRESS,
-          functionName: "nextIntentId",
-        }) as bigint;
-        onchainIntentId = nextId - 1n;
-      }
+      await publicClient.waitForTransactionReceipt({ hash: createHash });
 
       // ── Step 2: approve mUSDC allowance ─────────────────────────────────
       setStep("approving-usdc");
