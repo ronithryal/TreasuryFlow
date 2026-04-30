@@ -29,19 +29,22 @@ const RPC_URL = process.env.BASE_SEPOLIA_RPC_URL ??
     ? `https://base-sepolia.g.alchemy.com/v2/${process.env.VITE_ALCHEMY_KEY}`
     : "https://sepolia.base.org");
 
+// Demo mode: using seeded approver keypair — set DEMO_APPROVER_KEY in production for real signing.
+// This is Hardhat/Anvil account[1], a well-documented test key safe for demo/development.
+// IntentRegistry.approveIntent enforces initiator ≠ approver but has no signer allowlist,
+// so this key works out of the box as long as the user's wallet is the initiator.
+const SEEDED_DEMO_APPROVER_KEY =
+  "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Only POST
   if (req.method !== "POST") {
     return res.status(405).json({ error: "method_not_allowed" });
   }
 
-  // Check for approver key first
-  const rawKey = process.env.DEMO_APPROVER_KEY;
-  if (!rawKey) {
-    return res.status(503).json({
-      error: "Demo approver not configured. Add DEMO_APPROVER_KEY as a server-side Vercel env var.",
-    });
-  }
+  // DEMO_APPROVER_KEY is optional. Falls back to the seeded demo keypair so the
+  // golden path completes out of the box without any Vercel env var configuration.
+  const rawKey = process.env.DEMO_APPROVER_KEY ?? SEEDED_DEMO_APPROVER_KEY;
 
   // Parse and validate request body
   const { intentId, chainId } = req.body ?? {};

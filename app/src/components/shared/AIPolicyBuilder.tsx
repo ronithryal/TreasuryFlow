@@ -2,9 +2,84 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
-import { Zap, Bot, ArrowRight, ShieldCheck, CheckCircle2, ExternalLink } from "lucide-react";
+import { Zap, Bot, ArrowRight, ShieldCheck, CheckCircle2, ExternalLink, HelpCircle } from "lucide-react";
 import { useStore } from "@/store";
 import { IS_TESTNET } from "@/web3/mode";
+import type { PolicyType } from "@/types/domain";
+
+// ── Intent classification ────────────────────────────────────────────────────
+//
+// TODO: replace keyword map with real LLM intent classification in productionalization sprint
+//
+// Keyword order matters: more specific phrases are checked before shorter ones.
+// "bank cash out" must come before "cash out" to avoid the prefix matching "bank".
+
+interface CompiledPolicyMeta {
+  domainType: PolicyType;
+  label: string;
+  cadence: string;
+  condition: string;
+  action: string;
+}
+
+const POLICY_TYPE_KEYWORD_MAP: Array<CompiledPolicyMeta & { keywords: string[] }> = [
+  {
+    keywords: ["rebalance", "rebalancing", "rebalance portfolio", "move funds between wallets"],
+    domainType: "rebalance",
+    label: "Rebalance",
+    cadence: "On-demand",
+    condition: "Target band deviation detected",
+    action: "Move funds between wallets",
+  },
+  {
+    keywords: ["sweep and yield", "sweep", "deposit to morpho", "yield"],
+    domainType: "sweep",
+    label: "Sweep & Yield",
+    cadence: "Hourly Check",
+    condition: "Balance > $100,000",
+    action: "Deposit to Morpho",
+  },
+  {
+    keywords: ["bank cash out", "cash out", "wire", "ach"],
+    domainType: "cash_out",
+    label: "Bank Cash-Out",
+    cadence: "On-demand",
+    condition: "Approval required",
+    action: "Wire or ACH to bank",
+  },
+  {
+    keywords: ["cross border", "foreign exchange", "fx"],
+    domainType: "cash_out",
+    label: "FX / Cross-Border",
+    cadence: "On-demand",
+    condition: "FX exposure detected",
+    action: "Cross-border settlement",
+  },
+  {
+    keywords: ["vendor payment", "pay vendor", "payout"],
+    domainType: "payout_run",
+    label: "Vendor Payout",
+    cadence: "On-demand",
+    condition: "Approval required",
+    action: "Pay approved vendor",
+  },
+];
+
+// Default when prompt is long enough but no keyword matches.
+const DEFAULT_COMPILED_POLICY = POLICY_TYPE_KEYWORD_MAP[1]; // Sweep & Yield
+
+function classifyIntent(prompt: string): CompiledPolicyMeta | null {
+  const lower = prompt.toLowerCase();
+  for (const entry of POLICY_TYPE_KEYWORD_MAP) {
+    if (entry.keywords.some((kw) => lower.includes(kw))) {
+      return entry;
+    }
+  }
+  return null;
+}
+
+const CLARIFYING_QUESTION =
+  "What type of movement: sweep to yield, rebalance between wallets, or bank cash-out?";
 
 export function AIPolicyBuilder({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   if (IS_TESTNET) return <TestnetPolicyBuilder open={open} onOpenChange={onOpenChange} />;
@@ -15,11 +90,29 @@ export function AIPolicyBuilder({ open, onOpenChange }: { open: boolean; onOpenC
 
 function MockPolicyBuilder({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const [prompt, setPrompt] = useState("");
-  const [status, setStatus] = useState<"idle" | "generating" | "review" | "deploying" | "deployed">("idle");
+  const [status, setStatus] = useState<"idle" | "clarifying" | "generating" | "review" | "deploying" | "deployed">("idle");
+  const [compiledPolicy, setCompiledPolicy] = useState<CompiledPolicyMeta>(DEFAULT_COMPILED_POLICY);
   const upsertPolicy = useStore((s) => s.upsertPolicy);
 
   const handleGenerate = async () => {
     if (!prompt) return;
+    const words = prompt.trim().split(/\s+/);
+    const classified = classifyIntent(prompt);
+    // Trigger one clarifying question if input is under 10 words and no policy type matched.
+    if (words.length < 10 && !classified) {
+      setStatus("clarifying");
+      return;
+    }
+    const resolved = classified ?? DEFAULT_COMPILED_POLICY;
+    setCompiledPolicy(resolved);
+    setStatus("generating");
+    await new Promise((r) => setTimeout(r, 2000));
+    setStatus("review");
+  };
+
+  const handleClarifyConfirm = async () => {
+    // User acknowledged the clarifying question — proceed with default classification.
+    setCompiledPolicy(DEFAULT_COMPILED_POLICY);
     setStatus("generating");
     await new Promise((r) => setTimeout(r, 2000));
     setStatus("review");
@@ -27,8 +120,8 @@ function MockPolicyBuilder({ open, onOpenChange }: { open: boolean; onOpenChange
 
   const handleDeploy = () => {
     upsertPolicy({
-      name: "AI Generated Sweep Policy",
-      type: "sweep",
+      name: `AI Generated ${compiledPolicy.label} Policy`,
+      type: compiledPolicy.domainType,
       description: prompt,
       sourceAccountIds: ["acc_base_ops"],
       destinationAccountIds: ["morpho_contract"],
@@ -49,9 +142,11 @@ function MockPolicyBuilder({ open, onOpenChange }: { open: boolean; onOpenChange
       setPrompt={setPrompt}
       status={status}
       setStatus={setStatus}
+      compiledPolicy={compiledPolicy}
       txHash={undefined}
       isPending={false}
       onGenerate={handleGenerate}
+      onClarifyConfirm={handleClarifyConfirm}
       onDeploy={handleDeploy}
       deployLabel="Activate Policy"
     />
@@ -76,7 +171,8 @@ const DEMO_MAX_AMOUNT = 100_000n * 1_000_000n;
 
 function TestnetPolicyBuilder({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const [prompt, setPrompt] = useState("");
-  const [status, setStatus] = useState<"idle" | "generating" | "review" | "deploying" | "deployed">("idle");
+  const [status, setStatus] = useState<"idle" | "clarifying" | "generating" | "review" | "deploying" | "deployed">("idle");
+  const [compiledPolicy, setCompiledPolicy] = useState<CompiledPolicyMeta>(DEFAULT_COMPILED_POLICY);
   const [txHash, setTxHash] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
   const upsertPolicy = useStore((s) => s.upsertPolicy);
@@ -86,6 +182,22 @@ function TestnetPolicyBuilder({ open, onOpenChange }: { open: boolean; onOpenCha
 
   const handleGenerate = async () => {
     if (!prompt) return;
+    const words = prompt.trim().split(/\s+/);
+    const classified = classifyIntent(prompt);
+    // Trigger one clarifying question if input is under 10 words and no policy type matched.
+    if (words.length < 10 && !classified) {
+      setStatus("clarifying");
+      return;
+    }
+    const resolved = classified ?? DEFAULT_COMPILED_POLICY;
+    setCompiledPolicy(resolved);
+    setStatus("generating");
+    await new Promise((r) => setTimeout(r, 2000));
+    setStatus("review");
+  };
+
+  const handleClarifyConfirm = async () => {
+    setCompiledPolicy(DEFAULT_COMPILED_POLICY);
     setStatus("generating");
     await new Promise((r) => setTimeout(r, 2000));
     setStatus("review");
@@ -103,7 +215,7 @@ function TestnetPolicyBuilder({ open, onOpenChange }: { open: boolean; onOpenCha
           functionName: "createPolicy",
           // name, policyType, source (address(0)=wildcard), destination (address(0)=wildcard),
           // maxAmount (uint256), conditions (string)
-          args: ["AI Generated Sweep Policy", "sweep", DEMO_SOURCE, DEMO_DEST, DEMO_MAX_AMOUNT, prompt],
+          args: [`AI Generated ${compiledPolicy.label} Policy`, compiledPolicy.domainType, DEMO_SOURCE, DEMO_DEST, DEMO_MAX_AMOUNT, prompt],
         });
         await publicClient.waitForTransactionReceipt({ hash });
         setTxHash(hash);
@@ -115,8 +227,8 @@ function TestnetPolicyBuilder({ open, onOpenChange }: { open: boolean; onOpenCha
     }
 
     upsertPolicy({
-      name: "AI Generated Sweep Policy",
-      type: "sweep",
+      name: `AI Generated ${compiledPolicy.label} Policy`,
+      type: compiledPolicy.domainType,
       description: prompt,
       sourceAccountIds: ["acc_base_ops"],
       destinationAccountIds: ["morpho_contract"],
@@ -138,10 +250,12 @@ function TestnetPolicyBuilder({ open, onOpenChange }: { open: boolean; onOpenCha
       setPrompt={setPrompt}
       status={status}
       setStatus={setStatus}
+      compiledPolicy={compiledPolicy}
       txHash={txHash}
       error={error}
       isPending={status === "deploying"}
       onGenerate={handleGenerate}
+      onClarifyConfirm={handleClarifyConfirm}
       onDeploy={handleDeploy}
       deployLabel={status === "deploying" ? "Confirm in wallet…" : "Deploy Onchain"}
     />
@@ -155,19 +269,22 @@ interface DialogProps {
   onOpenChange: (v: boolean) => void;
   prompt: string;
   setPrompt: (v: string) => void;
-  status: "idle" | "generating" | "review" | "deploying" | "deployed";
-  setStatus: (s: "idle" | "generating" | "review" | "deploying" | "deployed") => void;
+  status: "idle" | "clarifying" | "generating" | "review" | "deploying" | "deployed";
+  setStatus: (s: "idle" | "clarifying" | "generating" | "review" | "deploying" | "deployed") => void;
+  compiledPolicy: CompiledPolicyMeta;
   txHash?: string;
   error?: string;
   isPending: boolean;
   deployLabel: string;
   onGenerate: () => void;
+  onClarifyConfirm: () => void;
   onDeploy: () => void;
 }
 
 function PolicyBuilderDialog({
   open, onOpenChange, prompt, setPrompt, status, setStatus,
-  txHash, error, isPending, deployLabel, onGenerate, onDeploy,
+  compiledPolicy, txHash, error, isPending, deployLabel,
+  onGenerate, onClarifyConfirm, onDeploy,
 }: DialogProps) {
   return (
     <Dialog open={open} onOpenChange={(val) => {
@@ -203,6 +320,27 @@ function PolicyBuilderDialog({
             </div>
           )}
 
+          {status === "clarifying" && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+                <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                  <HelpCircle className="h-4 w-4 shrink-0" />
+                  <p className="text-sm font-semibold">One quick question</p>
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed">{CLARIFYING_QUESTION}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Your prompt: <span className="italic">"{prompt}"</span>
+              </p>
+              <div className="flex justify-between items-center">
+                <Button variant="ghost" onClick={() => setStatus("idle")}>Edit prompt</Button>
+                <Button onClick={onClarifyConfirm} className="gap-2">
+                  Continue <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
           {status === "generating" && (
             <div className="py-12 flex flex-col items-center justify-center space-y-4">
               <div className="relative">
@@ -224,10 +362,10 @@ function PolicyBuilderDialog({
                   <span className="text-[10px] uppercase tracking-widest text-primary/60 font-mono">100% Deterministic</span>
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-xs">
-                  <div><span className="text-muted-foreground">Type</span><p className="font-mono mt-1 text-primary">Sweep & Yield</p></div>
-                  <div><span className="text-muted-foreground">Cadence</span><p className="font-mono mt-1 text-primary">Hourly Check</p></div>
-                  <div><span className="text-muted-foreground">Condition</span><p className="font-mono mt-1 text-primary">Balance &gt; $100,000</p></div>
-                  <div><span className="text-muted-foreground">Action</span><p className="font-mono mt-1 text-primary">Deposit to Morpho</p></div>
+                  <div><span className="text-muted-foreground">Type</span><p className="font-mono mt-1 text-primary">{compiledPolicy.label}</p></div>
+                  <div><span className="text-muted-foreground">Cadence</span><p className="font-mono mt-1 text-primary">{compiledPolicy.cadence}</p></div>
+                  <div><span className="text-muted-foreground">Condition</span><p className="font-mono mt-1 text-primary">{compiledPolicy.condition}</p></div>
+                  <div><span className="text-muted-foreground">Action</span><p className="font-mono mt-1 text-primary">{compiledPolicy.action}</p></div>
                   <div className="col-span-2"><span className="text-muted-foreground">Source</span><p className="font-mono mt-1 text-primary">Base Operating Wallet (0x71C...4e21)</p></div>
                 </div>
               </div>
