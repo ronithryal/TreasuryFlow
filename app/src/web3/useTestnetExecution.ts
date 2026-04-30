@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { parseEventLogs } from "viem";
 import {
   MOCK_USDC_ABI,
   MOCK_USDC_ADDRESS,
@@ -88,27 +89,27 @@ export function useTestnetExecution() {
       });
       const createReceipt = await publicClient.waitForTransactionReceipt({ hash: createHash });
 
-      // Parse intentId from the IntentCreated event
+      // Parse intentId from the IntentCreated event.
+      // parseEventLogs validates topic[0] (the event signature hash) before
+      // reading topic[1], so it never picks up the wrong intentId from a
+      // Transfer or other event that happens to share the same receipt.
       let onchainIntentId: bigint | undefined;
-      for (const log of createReceipt.logs) {
-        try {
-          // IntentCreated(uint256 indexed intentId, uint256 indexed policyId, uint256 amount, address indexed destination, address initiator)
-          // topic[0] = keccak256("IntentCreated(uint256,uint256,uint256,address,address)")
-          // topic[1] = intentId (indexed)
-          if (log.topics.length >= 2 && log.topics[1] !== undefined) {
-            const candidate = BigInt(log.topics[1]);
-            if (candidate >= 0n) {
-              onchainIntentId = candidate;
-              break;
-            }
-          }
-        } catch {
-          // not this log
+      try {
+        const intentCreatedLogs = parseEventLogs({
+          abi: INTENT_REGISTRY_ABI,
+          eventName: "IntentCreated",
+          logs: createReceipt.logs,
+        });
+        if (intentCreatedLogs.length > 0) {
+          onchainIntentId = intentCreatedLogs[0].args.intentId as bigint;
         }
+      } catch {
+        // fall through to nextIntentId fallback
       }
 
       if (onchainIntentId === undefined) {
-        // Fallback: read nextIntentId - 1
+        // Fallback: read nextIntentId - 1 from the contract.
+        // Reliable because createIntent atomically increments nextIntentId.
         const nextId = await publicClient.readContract({
           abi: INTENT_REGISTRY_ABI,
           address: INTENT_REGISTRY_ADDRESS,
