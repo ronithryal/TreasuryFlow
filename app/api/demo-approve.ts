@@ -81,6 +81,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       functionName: "approveIntent",
       args: [intentIdBigInt],
       chain: baseSepolia,
+      account,
     });
 
     // Wait for confirmation before returning — ensures approval is onchain
