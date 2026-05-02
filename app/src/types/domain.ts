@@ -398,3 +398,276 @@ export const TagSuggestionSchema = z.object({
   reasoning: z.string().min(1),
 });
 export type TagSuggestion = z.infer<typeof TagSuggestionSchema>;
+
+// =============================================================================
+// TF-001 — New domain model types (Plan 1)
+// =============================================================================
+
+// ---------- Branded IDs (new) ----------
+export type TreasuryWalletId = Brand<string, "TreasuryWalletId">;
+export type BalanceSnapshotId = Brand<string, "BalanceSnapshotId">;
+export type ExposureId = Brand<string, "ExposureId">;
+export type ActionProposalId = Brand<string, "ActionProposalId">;
+export type ExecutionPlanId = Brand<string, "ExecutionPlanId">;
+export type ExecutionStepId = Brand<string, "ExecutionStepId">;
+export type ExecutionRecordId = Brand<string, "ExecutionRecordId">;
+
+// ---------- TreasuryWallet ----------
+export const TreasuryWalletTypes = ["EMBEDDED", "EXTERNAL", "DEMO"] as const;
+export type TreasuryWalletType = (typeof TreasuryWalletTypes)[number];
+
+export const TreasuryModes = ["DEMO", "PRODUCTION"] as const;
+export type TreasuryMode = (typeof TreasuryModes)[number];
+
+export interface TreasuryWallet {
+  id: TreasuryWalletId;
+  /** EMBEDDED = CDP Embedded Wallet; EXTERNAL = WalletConnect; DEMO = seeded test wallet */
+  type: TreasuryWalletType;
+  /** DEMO caps outflows and targets testnet; PRODUCTION targets mainnet */
+  mode: TreasuryMode;
+  chain: string;
+  network: string;
+  /** All onchain addresses associated with this wallet */
+  addresses: string[];
+  label: string;
+  /** e.g. "cdp", "walletconnect", "fireblocks", "bitgo" */
+  custodian?: string;
+  maxDailyOutflowUsd?: number;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ---------- BalanceSnapshot ----------
+export const BalanceSnapshotSources = ["onchain", "cdp", "custody", "manual"] as const;
+export type BalanceSnapshotSource = (typeof BalanceSnapshotSources)[number];
+
+export interface BalanceSnapshot {
+  id: BalanceSnapshotId;
+  walletId: TreasuryWalletId;
+  chain: string;
+  asset: string;
+  balance: number;
+  balanceUsd: number;
+  snapshotAt: string;
+  source: BalanceSnapshotSource;
+}
+
+// ---------- Exposure ----------
+export const ExposureRiskLevels = ["LOW", "MEDIUM", "HIGH"] as const;
+export type ExposureRiskLevel = (typeof ExposureRiskLevels)[number];
+
+export interface Exposure {
+  id: ExposureId;
+  portfolioId: string;
+  asset: string;
+  chain?: string;
+  counterparty?: string;
+  /** Stablecoin issuer for concentration tracking (e.g. "circle", "tether") */
+  issuer?: string;
+  amountUsd: number;
+  /** Fraction of total portfolio value (0–1) */
+  pct: number;
+  concentrationRisk: ExposureRiskLevel;
+  computedAt: string;
+}
+
+// ---------- ActionProposal ----------
+export const ActionProposalTypes = [
+  "REBALANCE",
+  "FX_HEDGE",
+  "FUNDING",
+  "PAYMENT",
+  "YIELD_SHIFT",
+] as const;
+export type ActionProposalType = (typeof ActionProposalTypes)[number];
+
+export const ActionProposalStatuses = [
+  "DRAFT",
+  "UNDER_REVIEW",
+  "APPROVED",
+  "REJECTED",
+  "CANCELLED",
+  "EXECUTED_PARTIAL",
+  "EXECUTED_FULL",
+] as const;
+export type ActionProposalStatus = (typeof ActionProposalStatuses)[number];
+
+export const ProposalPriorities = ["LOW", "MEDIUM", "HIGH"] as const;
+export type ProposalPriority = (typeof ProposalPriorities)[number];
+
+export interface PolicyCheckResult {
+  policyId: string;
+  result: "PASS" | "WARN" | "FAIL";
+  messages?: string[];
+}
+
+export interface ActionProposal {
+  id: ActionProposalId;
+  version: number;
+  createdAt: string;
+  /** "hermes" or "user:<id>" */
+  createdBy: string;
+  type: ActionProposalType;
+  status: ActionProposalStatus;
+  portfolioId: string;
+  priority: ProposalPriority;
+  mode: TreasuryMode;
+  inputs: {
+    source: {
+      walletIds?: string[];
+      currencies?: string[];
+      chains?: string[];
+      [key: string]: unknown;
+    };
+    target: {
+      targetAllocations?: Array<{
+        asset: string;
+        targetPct: number;
+        minPct?: number;
+        maxPct?: number;
+      }>;
+      minLiquidityBufferUsd?: number;
+      hedgeHorizonDays?: number;
+      [key: string]: unknown;
+    };
+    constraints?: {
+      maxSlippageBps?: number;
+      maxNotionalUsd?: number;
+      allowedVenues?: string[];
+      disallowedVenues?: string[];
+      [key: string]: unknown;
+    };
+  };
+  expectedImpact: {
+    beforeExposure?: Record<string, unknown>;
+    afterExposure?: Record<string, unknown>;
+    estimatedPnlUsd?: number;
+    feeEstimateUsd?: number;
+    /** 0–1 */
+    riskScore?: number;
+  };
+  policyChecks?: PolicyCheckResult[];
+  rationale: {
+    summary: string;
+    details?: string;
+    marketContextId?: string;
+  };
+  linkedExecutionPlanId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+// ---------- ExecutionPlan / ExecutionStep ----------
+export const ExecutionPlanStatuses = [
+  "DRAFT",
+  "PENDING_APPROVAL",
+  "APPROVED",
+  "RUNNING",
+  "COMPLETED",
+  "FAILED",
+  "CANCELLED",
+] as const;
+export type ExecutionPlanStatus = (typeof ExecutionPlanStatuses)[number];
+
+export const ExecutionStepTypes = [
+  "QUOTE",
+  "SWAP",
+  "TRANSFER",
+  "ONRAMP",
+  "OFFRAMP",
+  "APPROVAL",
+  "LEDGER_WRITE",
+  "NOOP",
+] as const;
+export type ExecutionStepType = (typeof ExecutionStepTypes)[number];
+
+export const ExecutionStepStatuses = [
+  "PENDING",
+  "RUNNING",
+  "COMPLETED",
+  "FAILED",
+  "SKIPPED",
+] as const;
+export type ExecutionStepStatus = (typeof ExecutionStepStatuses)[number];
+
+export const ToolKinds = ["OPENCLAW_SKILL", "INTERNAL_API"] as const;
+export type ToolKind = (typeof ToolKinds)[number];
+
+export interface ExecutionStep {
+  id: ExecutionStepId;
+  index: number;
+  /** IDs of steps that must complete before this one runs */
+  dependsOn?: string[];
+  type: ExecutionStepType;
+  status: ExecutionStepStatus;
+  tool: { kind: ToolKind; name: string };
+  params: Record<string, unknown>;
+  expectedOutcome?: {
+    maxSlippageBps?: number;
+    minReceiveAmount?: string;
+    maxFeeUsd?: number;
+    [key: string]: unknown;
+  };
+  result?: {
+    raw?: Record<string, unknown>;
+    txHash?: string;
+    quoteId?: string;
+  };
+  error?: {
+    message: string;
+    code?: string;
+    retryable?: boolean;
+  };
+}
+
+export interface ExecutionPlan {
+  id: ExecutionPlanId;
+  version: number;
+  createdAt: string;
+  createdBy: string;
+  proposalId: string;
+  status: ExecutionPlanStatus;
+  mode: TreasuryMode;
+  steps: ExecutionStep[];
+  summary?: {
+    estimatedFeeUsd?: number;
+    estimatedPnlUsd?: number;
+    chainsInvolved?: string[];
+    walletsInvolved?: string[];
+  };
+  metadata?: Record<string, unknown>;
+}
+
+// ---------- ExecutionRecord ----------
+export interface ExecutionRecord {
+  id: ExecutionRecordId;
+  planId: ExecutionPlanId;
+  stepId: ExecutionStepId;
+  walletId: TreasuryWalletId;
+  chain: string;
+  asset: string;
+  amount?: number;
+  amountUsd?: number;
+  txHash?: string;
+  quoteId?: string;
+  status: ExecutionStepStatus;
+  mode: TreasuryMode;
+  raw?: Record<string, unknown>;
+  error?: string;
+  executedAt: string;
+}
+
+// ---------- MarketContext (TF-007) ----------
+export type MarketContextId = Brand<string, "MarketContextId">;
+
+export interface MarketContext {
+  marketContextId: MarketContextId;
+  portfolioId: string;
+  /** 1–2 sentence narrative for CFO audience */
+  summary: string;
+  /** Key risk factors (3–5 items) */
+  riskFactors: string[];
+  /** Liquidity observations (2–4 items) */
+  liquidityNotes: string[];
+  timestamp: string;
+}

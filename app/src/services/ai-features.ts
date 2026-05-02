@@ -5,6 +5,7 @@
  */
 import type { AgentClient } from "./perplexity";
 import { createAgentClient } from "./perplexity";
+import { exaSearch } from "./exa";
 import type { Intent, LedgerEntry, Policy, Account, Counterparty } from "@/types/domain";
 import { ExplanationSchema, TagSuggestionSchema, PolicyDraftSchema } from "@/types/domain";
 import { useStore } from "@/store";
@@ -196,8 +197,19 @@ export async function explainAnomaly(intent: Intent, history: LedgerEntry[]): Pr
 
 // ---------- 6. Counterparty Risk Assessment ----------
 export async function assessCounterpartyRisk(counterparty: Counterparty, intent: Intent): Promise<string> {
-  const instructions = "Rate this counterparty's risk (low/medium/high). Consider: amount, timing, frequency, name, prior patterns. Explain briefly.";
-  const input = `Counterparty: ${counterparty.name}. Intent amount: $${intent.amount}.`;
+  let webContext = "";
+  try {
+    const results = await exaSearch(`${counterparty.name} company financial risk sanctions`, 3);
+    webContext = results
+      .flatMap((r) => r.highlights ?? [])
+      .slice(0, 5)
+      .join(" | ");
+  } catch {
+    // Non-fatal — proceed without web context
+  }
+
+  const instructions = "Rate this counterparty's risk (low/medium/high). Consider: amount, timing, frequency, name, prior patterns, and any web context provided. Explain briefly in 1-2 sentences.";
+  const input = `Counterparty: ${counterparty.name}. Intent amount: $${intent.amount}.${webContext ? `\n\nWeb context: ${webContext}` : ""}`;
   return getClient().ask({ instructions, input, signal: startCall("assess-risk-" + counterparty.id) });
 }
 

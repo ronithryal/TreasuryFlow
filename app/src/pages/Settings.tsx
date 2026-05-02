@@ -264,10 +264,9 @@ export function Settings() {
           <Separator />
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium flex items-center gap-2">ACH / Wire cash-out <Badge variant="secondary" className="text-[10px]">Beta</Badge></p>
-              <p className="text-xs text-muted-foreground">Partner-powered ACH and domestic wire settlement. 1–3 business days, fee varies by rail.</p>
+              <p className="text-sm font-medium flex items-center gap-2">ACH / Wire cash-out <Badge variant="muted" className="text-[10px]">Demo</Badge></p>
+              <p className="text-xs text-muted-foreground">Partner-powered ACH and domestic wire settlement — simulated in v1. Live fiat execution coming soon.</p>
             </div>
-            <div className="flex items-center gap-2 text-chart-5"><CheckCircle2 className="h-4 w-4" /><span className="text-xs font-medium">Active</span></div>
           </div>
           <Separator />
           <div className="flex items-center justify-between">
@@ -278,6 +277,37 @@ export function Settings() {
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 Fiat-to-USDC conversion via compliant partner rails. Identity verification required.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Wallet Connections */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Wallet Connections</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium">Connect wallet (WalletConnect)</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Any EVM-compatible self-custody wallet on Base Sepolia — MetaMask, Ledger, Gnosis Safe,
+                hardware signers, or BitGo hot wallets connected as a plain EVM wallet. Managed by wagmi + Web3Modal on Base Sepolia only.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-chart-5 shrink-0"><CheckCircle2 className="h-4 w-4" /><span className="text-xs font-medium">Live</span></div>
+          </div>
+          <Separator />
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium flex items-center gap-2">
+                Connect custodian
+                <Badge variant="muted" className="text-[10px]">Coming soon</Badge>
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Full custodial support (BitGo Prime, Fireblocks, Coinbase Custody) requires dedicated custody APIs
+                with their own approval policies and authentication flows. Connecting a custodian's hot wallet via
+                WalletConnect gives onchain signing but bypasses the custodian's own policy controls and audit trail.
               </p>
             </div>
           </div>

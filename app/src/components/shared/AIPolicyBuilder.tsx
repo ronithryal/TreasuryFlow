@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
 import { Zap, Bot, ArrowRight, ShieldCheck, CheckCircle2, ExternalLink, HelpCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useStore } from "@/store";
 import { IS_TESTNET } from "@/web3/mode";
 import type { PolicyType } from "@/types/domain";
@@ -295,9 +296,10 @@ function PolicyBuilderDialog({
           <DialogTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-primary" />
             Agentic Policy Builder
+            <Badge variant="secondary" className="text-[10px] font-mono">Demo</Badge>
           </DialogTitle>
           <DialogDescription>
-            Describe your operational intent in plain English. The agent will compile it into an autonomous, onchain policy.
+            Describe your intent in plain English. Policy type is classified by keyword rules in v1 — AI-driven compilation via Hermes coming soon.
           </DialogDescription>
         </DialogHeader>
 

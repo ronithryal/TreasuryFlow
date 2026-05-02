@@ -30,6 +30,7 @@
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
     "ethers": "^6.16.0",
+    "exa-js": "^2.12.1",
     "framer-motion": "^12.38.0",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.460.0",

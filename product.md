@@ -173,6 +173,15 @@ Current treasury operations (SAP, Oracle, NetSuite) are passive. They record wha
 - **Finance-Language Cleanup**: Standardized terminology (“Payment Request,” “Activate Policy”) and USDC formatting.
 - **Mock Demo Preservation**: Separate mock environment preserved for consistent offline/seeded demos.
 
+**Shipped (v0.4 — Agent Architecture + Provider Scaffolding):**
+- **Three-Layer Agent Model**: Hermes (reasoning/proposal) → Policy Validator (deterministic guardrails) → OpenClaw (execution runtime). AI is the orchestration layer, not a feature.
+- **`ActionProposal` schema**: Structured JSON type capturing proposal type, source/target allocations, constraints, expected impact, policy check results, and AI rationale. All agent output conforms to this schema.
+- **`ExecutionPlan` schema**: Step-level execution graph linked to a proposal — each step names a tool (OpenClaw skill or internal API), carries params, and records result/txHash/error on completion.
+- **MarketContext service**: Exa (retrieval) + Perplexity (synthesis) + Fireworks (structured JSON shaping) pipeline that Hermes calls before generating proposals. All AI features are live with real API keys; mock fallback preserved.
+- **Custody Adapter Scaffolding**: Interface-complete adapters for Coinbase Custody, Fireblocks, Anchorage Digital, and BitGo. All adapters return typed responses; users see “Coming soon — connect your custodian” in Settings. No live keys wired yet.
+- **Fiat-to-Crypto Rail Scaffolding**: Coinbase Onramp, Offramp, and ACH/wire flows are scaffolded with full UI (funding page, off-ramp flow, bank account management). Users see the complete flow with “Coming soon” gates. No live fiat execution — good sandboxes are unavailable and verification bottlenecks preclude production wiring at this stage.
+- **Demo Wallet Type**: `TreasuryWallet.type: DEMO` with `maxDailyOutflowUsd` guard is a first-class concept — same pipelines run in demo mode (testnet, capped amounts) and production mode (real rails, extra approvals).
+
 **Verified:**
 - 28 unit tests (policy engine, approvals, execution, ledger, reconciliation)
 - 4 end-to-end demo scenarios (sweep, rebalance, payout batch, deposit routing)
@@ -220,12 +229,13 @@ Current treasury operations (SAP, Oracle, NetSuite) are passive. They record wha
 - Seed data + scenario buttons for 60-second demo
 - Dark mode + localStorage persistence
 
-### Phase 2: v1.0 (Next 4 weeks) — Production Ready
-**Coinbase for Business Integration (pending approval)**
-- Real onchain execution via Coinbase API
-- Live balance polling (Base, Ethereum, Polygon)
-- Actual USDC transfers (sweep, rebalance, payout runs)
-- Settlement confirmation and error handling (retry logic)
+### Phase 2: v1.0 (Next 4 weeks) — Production-Ready Agent Layer
+
+**Agent Orchestration (Live)**
+- Hermes agent loop: polls onchain state, calls MarketContext service, emits `ActionProposal[]` on schedule and on triggers
+- `ActionProposal` → policy validator → `ExecutionPlan` pipeline wired end-to-end
+- Treasury Inbox UI: proposals ranked by priority, policy check results (PASS/WARN/FAIL), approve/reject/edit
+- OpenClaw skill registry: `chain_get_balances`, `contract_swap`, `transfer_stablecoin`, `walletconnect_send_tx`, `create_demo_wallet` — all callable from agent and from UI
 
 **Compliance & Audit**
 - PDF audit reports with Perplexity citations and policy rationale
@@ -243,17 +253,28 @@ Current treasury operations (SAP, Oracle, NetSuite) are passive. They record wha
 - Real-time balance dashboard (WebSocket updates)
 - Policy breach alerts (Slack, email, in-app)
 - Settlement failure notifications + retry UI
-- Market shock detector (e.g., >5% rate move → trigger rebalance alert)
+- Market shock detector (e.g., >5% rate move → Hermes proposes rebalance)
 
 **Multi-Entity Support**
 - Subsidiary/entity selector in UI
 - Entity-scoped policies and approvals
 - Consolidation reporting (group-level balance view)
 
+**Custody Adapter Wiring (Live — prioritized by customer demand)**
+- Connect first custodian (Coinbase Custody or Fireblocks) with live API keys
+- Balance sync, transfer initiation, and approval routing through custody layer
+- Remaining adapters (Anchorage, BitGo) stay scaffolded until contracted
+
+**Fiat-to-Crypto Rails (Scaffolding — Coming Soon)**
+- Coinbase Onramp and Offramp UI is complete; live execution gated pending sandbox availability and KYC verification flow clearance
+- ACH/wire integration scaffolded; production wiring deferred
+- Users see full flow with "Coming soon" gates — no live fiat execution in this phase
+
 ### Phase 3: v1.1 (Weeks 5–8) — Market Expansion
-**Coinbase Onramp/Offramp**
-- Fiat-to-digital-dollar funding (via Coinbase Onramp)
-- Digital-to-fiat settlement (via Coinbase Offramp)
+
+**Fiat-to-Crypto Rails (Live — when sandbox + verification ready)**
+- Fiat-to-digital-dollar funding (via Coinbase Onramp) — remove "Coming soon" gate
+- Digital-to-fiat settlement (via Coinbase Offramp) — remove "Coming soon" gate
 - Real bank ACH/wire integration
 - KYC/KYB automation (regulated providers)
 
@@ -297,10 +318,13 @@ Current treasury operations (SAP, Oracle, NetSuite) are passive. They record wha
 
 ## Strategic Product Roadmap
 
-- **Coinbase Business Integration**: Unified payouts, balances, recipients, and accounting sync.
+- **Agent Orchestration Core**: Hermes + OpenClaw three-layer model (propose → validate → execute) as the operating system for all treasury actions. Live.
+- **Custody Adapters** *(scaffolded → live by customer demand)*: Coinbase Custody, Fireblocks, Anchorage Digital, BitGo. Interface-complete stubs shipped; live keys wired per customer contract. Users see "Connect your custodian" in Settings.
+- **Coinbase Business Integration**: Unified payouts, balances, recipients, and accounting sync. Live onchain execution; fiat rails deferred (see below).
+- **Fiat-to-Crypto Rails** *(scaffolded → live when verification unblocked)*: Coinbase Onramp/Offramp, ACH/wire, KYC/KYB. Full UI scaffolded with "Coming soon" gates. Good sandboxes unavailable; verification timelags preclude live wiring now. Ungate in v1.1 when ready.
 - **Ramp Integration**: Stablecoin-funded corporate spend, bill pay, physical/virtual cards, and direct ERP workflows.
 - **Circle Mint Integration**: Direct mint/redeem capabilities, role-based approval flows, granular reporting, and treasury APIs.
-- **OpenFX Module**: Cross-border FX routing for stablecoin-to-local-currency payouts (OpenFX-style).
+- **OpenFX Module**: Cross-border FX routing for stablecoin-to-local-currency payouts (OpenFX-style). Scaffolded adapter exists; live execution in Phase 3.
 - **Verifiable AI/Audit Layer**: EigenCloud-style proving of offchain risk scoring and audit rationales.
 
 ## Metrics & Success
@@ -374,7 +398,7 @@ Every technical decision flows from this. We don't hold funds, we don't hold key
 
 ### Wallet Integration: Why WalletConnect
 
-**Decision: WalletConnect (primary) + Coinbase Onramp/Offramp (secondary fiat bridge)**
+**Decision: WalletConnect (primary) + Coinbase Onramp/Offramp (secondary fiat bridge — scaffolded)**
 
 **The choice:**
 - ❌ NOT embedded wallets (CDP) — those would mean "Coinbase holds your keys" (even if encrypted client-side)
@@ -388,7 +412,37 @@ Every technical decision flows from this. We don't hold funds, we don't hold key
 
 **Trade-off:** Extra click (user approves in their wallet) vs. embedded wallet UX. For institutional treasuries managing millions, that's a feature.
 
-**Fiat flows (v1.1):** Coinbase Onramp (USD → USDC to their wallet) and Offramp (USDC → USD to bank) are pass-through bridges. User's USDC always lives in their WalletConnect wallet, never ours.
+**Fiat flows (v1.1, deferred):** Coinbase Onramp (USD → USDC to their wallet) and Offramp (USDC → USD to bank) are pass-through bridges and will remain non-custodial by design. The UI is scaffolded and visible to users as "Coming soon." Live execution is deferred to v1.1 — no adequate sandbox exists for safe testing, and production verification has timelags that make early wiring risky. User's USDC will always live in their WalletConnect wallet, never ours, once live.
+
+---
+
+### Agent Architecture: Three-Layer Model
+
+**Decision: Hermes (reasoning) → Policy Validator (guardrails) → OpenClaw (execution)**
+
+The AI is not a feature layer on top of the product. It is the operating system. Every treasury action originates as an AI proposal, passes a deterministic policy check, and is then executed step-by-step through discrete, auditable skills.
+
+**Layer 1 — Hermes (propose)**
+- Reads compressed portfolio state via `tool_get_portfolio_state`
+- Pulls market context via a MarketContext service: Exa (retrieval) + Perplexity (synthesis) + Fireworks (JSON shaping)
+- Emits `ActionProposal[]` — structured JSON with proposal type, source/target, constraints, expected impact (before/after exposure, fee estimate, risk score), and a cited rationale
+- Hermes never touches contracts or wallets directly; it only produces proposals
+
+**Layer 2 — Policy Validator (check)**
+- Deterministic backend service: for each `ActionProposal`, evaluates every active `Policy` rule
+- Emits `PolicyCheckResult[]` with `PASS / WARN / FAIL` per rule and human-readable messages
+- A single `FAIL` blocks the proposal from becoming an `ExecutionPlan` without override
+- This is the cryptographic guarantee: every executed action was explicitly validated
+
+**Layer 3 — OpenClaw (execute)**
+- Skills are discrete, logged, deterministic functions: `chain_get_balances`, `contract_swap`, `transfer_stablecoin`, `walletconnect_send_tx`, `create_demo_wallet`, `fund_demo_wallet`
+- Fiat rail skills (`cdp_get_buy_quote`, `cdp_initiate_onramp`, `offramp_initiate`) exist as scaffolded stubs — they return mock responses and render "Coming soon" in the UI until live rails are unblocked
+- Custody adapter skills (`coinbase_custody_transfer`, `fireblocks_transfer`, etc.) are scaffolded stubs — same pattern
+- Each skill updates `ExecutionPlan.steps[i].status/result/error` on completion; every step is auditable
+
+**Demo vs. Production parity:** `mode: DEMO` routes the same pipelines through `type: DEMO` wallets on testnet with capped `maxDailyOutflowUsd`. No separate code paths. Swapping to production just changes the mode flag and unblocks custody/fiat skills.
+
+**What's live today:** All AI reasoning (Hermes/Perplexity/MarketContext), all smart contract execution (Base Sepolia + mainnet), all policy validation. What's scaffolded: fiat rails, custody adapters, cross-chain bridges.
 
 ---
 
@@ -443,6 +497,7 @@ Every technical decision flows from this. We don't hold funds, we don't hold key
 - ❌ We are **not** a yield farming bot (we optimize capital allocation + compliance, not speculation/returns)
 - ❌ We are **not** replacing risk committees (policies are guardrails; humans decide strategy)
 - ❌ We are **not** "crypto for crypto's sake" (Base + USDC is settlement infrastructure, like companies use ACH)
+- ❌ We are **not** shipping live fiat-to-crypto rails yet — sandbox limitations and verification timelags make this premature. UI is scaffolded; live execution is gated until v1.1 when those constraints clear.
 
 ## Go-to-Market (v1.0)
 
@@ -465,3 +520,88 @@ Every technical decision flows from this. We don't hold funds, we don't hold key
 - Product: ecosystem integrations
 
 **Series B (v2.0):** $40M+ for network effects + institutional scale
+
+---
+
+## 2026-05-02 – P0 solidified, P1 scaffolding in place
+
+**Summary**
+
+Locked in the direction to **build on the existing TreasuryFlow repo rather than start from scratch**. The current codebase has a strong foundation: live Base Sepolia contracts, a clean React/Zustand frontend, and an AI layer that already handles explainability and policy drafting. The focus now is to complete the **P0 golden-path demo** and stand up a realistic **P1 adapter + agent orchestration** layer.
+
+**What's solid**
+
+- Contracts: Five-core-contract architecture (`PolicyEngine`, `IntentRegistry`, `TreasuryVault`, `LedgerContract`, `MockUSDC`) is deployed and wired correctly on Base Sepolia.
+- Frontend: React + TypeScript + Vite app with `web3/` hooks, Zustand store, and an Audit surface that can link through to Basescan.
+- Coordination: `plan1-integration` carries the multi-agent build plan (`CLAUDE.md`, `AGENT_HANDOFFS.md`, `DEMO_ACCEPTANCE.md`, `P0_RISKS.md`) and scripts for repeatable testnet deployment and demo resets.
+- AI layer: `AgentClient` abstraction with Perplexity Sonar integration and mock mode, plus higher-level helpers for intent explanations, tag suggestions, and policy drafting.
+
+**New reality for Plan 0 (P0)**
+
+P0 is now framed as: **one fully honest, cryptographically-verifiable demo on Base Sepolia** that walks a CFO through maker-checker approval and into an onchain audit trail.
+
+Concrete P0 work:
+
+- Finish the "no hardcoded addresses" story by having the deploy script emit an `addresses.json` artifact and having the frontend load it instead of relying on hardcoded fallbacks.
+- Tighten the "honest path" flow in the UI: create intent → approve → execute → view ledger → click out to Basescan.
+- Implement WalletConnect properly so the demo uses a real wallet with testnet USDC.
+- Use the existing AI helpers for **explainability only** (intent rationale, tagging, month-end summary) — no orchestration yet.
+
+**Plan 1 (P1) – Adapters + agent harness**
+
+`p1/openfx-scaffold` is confirmed as the starting point for Plan 1: all six provider adapters exist as stubs under `app/src/adapters/`, with **OpenFX** having a realistic `MockOpenFXAdapter` that simulates FX corridors like USD→MXN and USD→GBP (rates, spreads, routes, expiry).
+
+Updated P1 focus:
+
+- Finalize a common async interface across all adapters (OpenFX, Coinbase, Circle, Ramp, Bank, ERP) with `quote()` and `execute()` flows.
+- Introduce an **agent orchestration module** that:
+  - Reads live balances / intents from the contracts.
+  - Calls mocked adapters for quotes.
+  - Uses the AI layer to generate structured `ActionProposal[]` (the "Treasury Inbox").
+- Start a lightweight EigenCloud-style verification layer that checks every proposal against hard constraints before it becomes an onchain intent.
+
+**Decision**
+
+No new repo. The work going forward is **surgical**: wire up `addresses.json`, fix wallet connectivity, add an `agent-orchestrator` on top of the existing AI + adapter scaffolds, and then progressively replace mocks with live rails.
+
+---
+
+## 2026-05-02 – Making AI the foundation, not a feature
+
+**Summary**
+
+Clarified the north star: **TreasuryFlow should treat AI as the operating system of the product, not a bolt-on feature.** The long-term shape is a proactive treasury agent that continuously monitors balances, markets, and rails, then proposes and executes moves within strict policy and verification bounds. The current explainability helpers are good, but they become *subroutines* inside a larger agent loop rather than the main act.
+
+**What AI is today**
+
+Right now the AI layer is **reactive and surface-level**:
+
+- `AgentClient` wraps Perplexity Sonar (with a mock mode) and powers helpers like `explainIntent`, `suggestTags`, and `draftPolicy`.
+- These functions are triggered by UI events (clicks), return strings/JSON, and do not maintain their own notion of portfolio state or risk.
+- They are valuable for *understanding* what's happening, but they do not *drive* what happens next.
+
+This is AI as a feature: helpful, but not in control.
+
+**What AI needs to become**
+
+The new direction is to make AI the **orchestration layer for the whole treasury OS**:
+
+- Introduce an **agent loop** that runs on a schedule or event triggers:
+  - Reads onchain state (balances, open intents, policy thresholds) from the Base Sepolia contracts.
+  - Pulls in offchain context via the adapter layer (FX quotes from OpenFX, bank rails, ERP signals) – initially mocked in `p1/openfx-scaffold`.
+  - Calls the AI stack to generate structured `ActionProposal[]` – proposed sweeps, FX trades, payouts, and rebalances.
+- Every proposal is then:
+  - Checked against hard constraints (limits, allowed corridors, policy rules).
+  - Written into the system as an object that can become an onchain intent after human approval.
+
+In this model, **the AI is the decision engine**, and the contracts + adapters are execution backends.
+
+**How this changes the roadmap**
+
+- P0: AI remains **assistive** (rationales, tagging, policy drafting) to prove value and trust inside a fully honest onchain demo.
+- P1: The adapter layer plus a new `agent-orchestrator` module turn AI into a **continuous monitoring and proposal engine**, using mocked providers to shape the UX and API surfaces.
+- P2: Live rails (OpenFX, Circle, banks) + EigenCloud-style verification move AI from "propose only" toward **policy-bounded autonomy**, where some actions can be auto-executed under strict guardrails.
+
+**Product principle going forward**
+
+Design every new feature with the assumption that **the primary user of the system is the agent**, and humans are approving, configuring, and auditing its behavior. UIs, APIs, and adapters should be built for an AI-first client that is always running, not just for a human clicking buttons.

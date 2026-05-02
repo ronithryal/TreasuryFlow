@@ -184,3 +184,411 @@
 11. **Multi-currency** — Support ETH, USDT, stablecoins beyond USDC
 12. **Rate feeds** — Real-time pricing and conversion rates
 13. **E2E tests** — Playwright suite for critical paths across browsers
+
+---
+
+## TreasuryFlow v1 Engineering Plan
+
+> **All coding agents must read this section before making changes.**
+> **Each task must update this document when complete.**
+>
+> Base branch: **`plan1-integration`** — all v1 work branches from here.
+> `p1/openfx-scaffold` is **not merged**; OpenFX is scaffolded under
+> `integrations/openfx/` and `docs/openfx-integration.md`, gated by
+> `OPENFX_ENABLED=false`. Do not wire it into any live code path.
+
+**Goal:** Ship a full v1 demo on **Base Sepolia** where a user can connect a wallet, see balances/exposure, receive AI-generated proposals, approve an execution plan, and run it end-to-end — **without requiring NemoClaw or OpenFX**.
+
+NemoClaw and OpenFX are explicitly **out of scope for v1**; they come later behind feature flags.
+
+---
+
+### Rails in v1 — Real vs Mocked
+
+| Rail | Status in v1 | Notes |
+|------|-------------|-------|
+| **AI (Hermes / Perplexity / Exa / Fireworks)** | ✅ Real | Live API keys; mock fallback preserved |
+| **Base Sepolia contracts** (`PolicyEngine`, `IntentRegistry`, `TreasuryVault`, `LedgerContract`) | ✅ Real | Deployed, wired, and tested |
+| **WalletConnect (wagmi + Web3Modal/AppKit)** | ✅ Real | User-controlled onchain wallets on Base Sepolia |
+| **CDP Embedded Wallets** | ✅ Real | Backend `/api/cdp/wallet-token` + frontend CDP SDK; see TF-005 |
+| **CDP Onramp / Offramp** | 🟡 Mocked | Realistic fake quotes and sessions; UI labeled "Coming soon / mocked rail" |
+| **OpenFX (FX corridors)** | 🟡 Mocked | Scaffold under `integrations/openfx`, gated by `OPENFX_ENABLED=false` |
+| **Bank adapters (ACH/wire)** | 🟡 Mocked | Scaffold only; no live fiat execution |
+| **ERP webhooks (NetSuite / QuickBooks)** | 🟡 Mocked | Scaffold only; not wired to runtime |
+| **Custody APIs (BitGo / Prime / Fireblocks / Coinbase Custody)** | 🟡 Mocked | `MockCustodyAdapter` (see TF-014); UI labeled "Coming soon – custody integration mocked" |
+
+**Crypto-first principle:** v1 executes real value flows only on Base Sepolia via smart contracts and CDP Embedded Wallets. Every fiat, FX, bank, ERP, and custody rail is either a realistic mock adapter or an explicit "Coming soon" scaffold. No live fiat or custody execution occurs in v1.
+
+---
+
+### Tracks and Ownership
+
+| Track | Focus |
+|-------|-------|
+| **Track A – Platform & cleanup** | Align app with roadmap, confirm WalletConnect, fence off future OpenFX |
+| **Track B – Data & backend rails** | DB/domain model, CDP sandbox helpers, Base Sepolia helpers, execution step API |
+| **Track C – AI (Hermes)** | Hermes tools, proposal and plan generation using backend endpoints |
+| **Track D – Frontend** | Dashboard, Treasury Inbox, plan review UI, live execution monitor, audit/history |
+
+---
+
+### Issues
+
+#### Track A – Platform & cleanup
+
+**TF-000 · Cleanup: Align current app with new roadmap** ✅ Complete (2026-05-02)
+- **Base Sepolia only**: `wagmi.ts` chains `[baseSepolia]` only; all contract addresses in `testnet.ts` (env-var overridable).
+- **OpenFX**: `integrations/openfx/` gated by `OPENFX_ENABLED=false`; not imported by any live code path. No OpenFX network calls anywhere.
+- **AI labels**: `AIPolicyBuilder` dialog now shows `[Demo]` badge and description clarifies keyword classification in v1. `AskAI` chat uses Perplexity proxy (real backend). Dev-only "Force mock AI" toggle gated by `SHOW_DEV_SETTINGS`.
+- **ACH / Wire cash-out** in Settlement Rails now labeled `Demo` (was "Active"); description clarifies live fiat execution is coming soon.
+- **No direct third-party API calls from browser**: Exa → `/api/exa-search`, Perplexity → `/api/agent-proxy` (Vite dev proxy / `VITE_AGENT_PROXY_URL`). CDP, Fireworks not called from frontend.
+
+**TF-004 · WalletConnect: Confirm & document existing live integration** ✅ Complete (2026-05-02)
+- **wagmi config** (`app/src/web3/wagmi.ts`): `chains: [baseSepolia]`, connectors `[coinbaseWallet({ appName, preference: all }), walletConnect({ projectId })]`. `projectId` from `VITE_WC_PROJECT_ID` env var (falls back to `'fake_project_id_for_demo'` for local dev).
+- **Web3Provider** (`app/src/web3/Web3Provider.tsx`): `createWeb3Modal({ wagmiConfig, projectId, metadata, enableAnalytics, themeMode: 'dark' })`. Wrapped in `WagmiProvider` + `QueryClientProvider` (TanStack Query). Mounted only when `IS_TESTNET=true` (tree-shaken in mock build).
+- **Agents do not manage WalletConnect sessions**: WalletConnect is user-initiated only. v1 backend execution uses CDP Embedded Wallets and the demo approver key.
+- **Scope of WalletConnect in v1**: EVM-compatible self-custody wallets on Base Sepolia only (MetaMask, Ledger, Gnosis Safe, hardware signers, BitGo hot wallets as plain EVM wallets).
+- **Custodian distinction documented in Settings**: "Connect wallet (WalletConnect)" shows Live; "Connect custodian" shows Coming soon with explanation that full custodial APIs (BitGo Prime, Fireblocks, Coinbase Custody) bypass WalletConnect's scope and require the custody adapter layer (TF-014).
+
+---
+
+#### Track B – Data & backend rails
+
+**TF-001 · Domain Model: Core DB entities & JSON schemas** ✅ Complete (2026-05-02)
+- Added backend models to `app/src/types/domain.ts`: `TreasuryWallet`, `BalanceSnapshot`, `Exposure`, `ActionProposal`, `ExecutionPlan`, `ExecutionStep`, `ExecutionRecord` (all with branded ID types)
+- Existing `Intent` / `Policy` / `LedgerEntry` / all P0 flows untouched
+- Zod-based JSON Schema validators in `app/src/domain/schemas.ts`: `validateActionProposal()` and `validateExecutionPlan()` — server-safe, usable in Vercel functions and browser
+- 47 unit tests added in `app/src/test/domain/schemas.test.ts` (valid + invalid examples for each schema); all 75 tests pass, zero TS errors
+
+**Final model shapes (reference for Sessions 3–12):**
+
+```typescript
+// app/src/types/domain.ts — new branded IDs
+TreasuryWalletId, BalanceSnapshotId, ExposureId
+ActionProposalId, ExecutionPlanId, ExecutionStepId, ExecutionRecordId
+
+// TreasuryWallet
+{ id, type: "EMBEDDED"|"EXTERNAL"|"DEMO", mode: "DEMO"|"PRODUCTION",
+  chain, network, addresses: string[], label, custodian?, maxDailyOutflowUsd?,
+  metadata, createdAt, updatedAt }
+
+// BalanceSnapshot
+{ id, walletId, chain, asset, balance, balanceUsd, snapshotAt,
+  source: "onchain"|"cdp"|"custody"|"manual" }
+
+// Exposure
+{ id, portfolioId, asset, chain?, counterparty?, issuer?,
+  amountUsd, pct, concentrationRisk: "LOW"|"MEDIUM"|"HIGH", computedAt }
+
+// ActionProposal
+{ id, version, createdAt, createdBy, portfolioId, mode, priority,
+  type: "REBALANCE"|"FX_HEDGE"|"FUNDING"|"PAYMENT"|"YIELD_SHIFT",
+  status: "DRAFT"|"UNDER_REVIEW"|"APPROVED"|"REJECTED"|"CANCELLED"|"EXECUTED_PARTIAL"|"EXECUTED_FULL",
+  inputs: { source: {...}, target: {...}, constraints?: {...} },
+  expectedImpact: { beforeExposure?, afterExposure?, estimatedPnlUsd?, feeEstimateUsd?, riskScore? },
+  policyChecks?: [{ policyId, result: "PASS"|"WARN"|"FAIL", messages? }],
+  rationale: { summary, details?, marketContextId? },
+  linkedExecutionPlanId?, metadata? }
+
+// ExecutionStep
+{ id, index, dependsOn?, type: "QUOTE"|"SWAP"|"TRANSFER"|"ONRAMP"|"OFFRAMP"|"APPROVAL"|"LEDGER_WRITE"|"NOOP",
+  status: "PENDING"|"RUNNING"|"COMPLETED"|"FAILED"|"SKIPPED",
+  tool: { kind: "OPENCLAW_SKILL"|"INTERNAL_API", name },
+  params, expectedOutcome?, result?, error? }
+
+// ExecutionPlan
+{ id, version, createdAt, createdBy, proposalId, mode,
+  status: "DRAFT"|"PENDING_APPROVAL"|"APPROVED"|"RUNNING"|"COMPLETED"|"FAILED"|"CANCELLED",
+  steps: ExecutionStep[], summary?, metadata? }
+
+// ExecutionRecord
+{ id, planId, stepId, walletId, chain, asset, amount?, amountUsd?,
+  txHash?, quoteId?, status, mode, raw?, error?, executedAt }
+
+// Validators (app/src/domain/schemas.ts)
+validateActionProposal(data: unknown): ValidationResult<ActionProposalOutput>
+validateExecutionPlan(data: unknown):  ValidationResult<ExecutionPlanOutput>
+// ValidationResult = { success: true, data } | { success: false, errors: [{path, message}] }
+```
+
+**TF-005 · CDP: Embedded Wallets integration (real) + Onramp/Offramp scaffold (mocked)** ✅ Complete (2026-05-02)
+
+_The main real deliverable is CDP Embedded Wallets. Onramp/Offramp are explicitly mocked adapters in v1._
+
+**CDP Embedded Wallets (real, v1):**
+- Backend endpoint `POST /api/cdp/wallet-token` (`app/api/cdp/wallet-token.ts`): signs a HS256 JWT using `CDP_API_KEY` (kid) and `Buffer.from(CDP_SECRET_KEY, "base64")` as HMAC secret. Returns `{ token: string; expiresAt: number }`. Dev proxy wired in `vite.config.ts` (`cdpWalletTokenProxy`). Credentials stay server-side.
+- Frontend hook `useCdpEmbeddedWallet` (`app/src/web3/useCdpEmbeddedWallet.ts`): calls `/api/cdp/wallet-token`, caches the token (re-fetches when <30 s from expiry), and provides:
+  - `authenticate(userId?)` → `CdpWalletToken`
+  - `createDemoWallet()` → `TreasuryWallet { type: EMBEDDED, mode: DEMO }` (provisioned on Base Sepolia)
+  - `fundDemoWallet(walletId, amountUsd?)` → `FundResult` (targets MockUSDC.mint on Base Sepolia; simulated in v1 when faucet unavailable)
+- The wagmi `coinbaseWallet({ preference: { options: "all" } })` connector in `wagmi.ts` exposes the Embedded Wallet UX in the browser — no separate frontend SDK package required.
+
+**CDP Onramp / Offramp (mocked, v1):**
+- `app/src/adapters/cdp/onramp.ts`: `getBuyQuote(asset, fiatAmount, fiatCurrency)` and `initiateOnramp(quoteId, destinationAddress)` return realistic fake objects. `ONRAMP_MOCKED = true`.
+- `app/src/adapters/cdp/offramp.ts`: `initiateOfframp(asset, cryptoAmount, destination, fiatCurrency)` returns a fake session. `OFFRAMP_MOCKED = true`.
+- `app/src/adapters/cdp/index.ts`: barrel re-export.
+- All UI surfaces that call these adapters MUST display "Coming soon – mocked fiat rail. No real fiat execution occurs in v1."
+
+**`GET /api/portfolio_state` — response shape (reference for TF-003/TF-009):**
+
+```typescript
+// app/api/portfolio_state.ts — PortfolioState
+{
+  portfolioId: string,               // "demo_portfolio_1"
+  computedAt: string,                // ISO-8601
+  mode: "DEMO" | "PRODUCTION",
+  totalUsd: number,                  // sum of balanceSnapshots[].balanceUsd
+  wallets: TreasuryWallet[],         // EMBEDDED + DEMO wallet objects
+  balanceSnapshots: BalanceSnapshot[], // one per (wallet × asset)
+  exposures: Exposure[],             // one per asset / concentration bucket
+  custodyAccounts: CustodyAccount[], // from MockCustodyAdapter (MOCKED)
+}
+// Dev proxy: portfolioStateProxy() in vite.config.ts
+// Production: Vercel serverless at app/api/portfolio_state.ts
+// TF-007 / TF-009 will replace static seed with live Postgres aggregation.
+```
+
+**TF-006 · Onchain: Base Sepolia contract helpers** ✅ Complete (2026-05-02)
+
+Module: `app/src/adapters/base-sepolia/` — server-side only (uses `process.env`, never `import.meta.env`).
+
+**Shared client** (`client.ts`):
+- `makePublicClient()` → viem `PublicClient` on Base Sepolia using `BASE_SEPOLIA_RPC_URL` (falls back to `VITE_ALCHEMY_KEY` URL, then public RPC)
+- `makeWalletClient(privateKey)` → `{ client, account }` bundle for signing
+- `makeDemoWalletClient()` → same, reads `DEMO_APPROVER_KEY` from env
+
+**Four helpers** (`helpers.ts`) — all accept optional `publicClient`/`walletBundle` for unit testing without network access:
+
+```typescript
+// 1. Read ETH + ERC-20 balances; returns BalanceSnapshot[] per (address × asset)
+chainGetBalances(
+  walletAddresses: string[],
+  chain?: string,
+  opts?: {
+    extraTokens?: Array<{ symbol, address, decimals }>;
+    walletIdMap?: Record<string, string>;  // address → TreasuryWalletId
+    publicClient?: ViemPublicClient;
+  }
+): Promise<WalletBalance[]>
+// WalletBalance = { address, ethBalance, tokens: TokenInfo[], snapshots: BalanceSnapshot[] }
+
+// 2. Generic read-only contract call (accepts any human ABI fragment at runtime)
+contractCallRead(
+  contractAddress: string,
+  functionSignature: string,  // e.g. "function balanceOf(address) view returns (uint256)"
+  args: unknown[],
+  chain?: string,
+  publicClient?: ViemPublicClient,
+): Promise<unknown>
+
+// 3. DEX swap — SWAP_MOCKED=true in v1; wire Uniswap V3 in TF-020
+contractSwap(
+  params: {
+    fromToken, toToken: string;   // ERC-20 addresses
+    amountIn: number;             // human-readable
+    minAmountOut?, slippageBps?,  // default 50 bps
+    routerAddress?,               // future: Uniswap V3 SwapRouter
+    signerPrivateKey?,            // defaults to DEMO_APPROVER_KEY
+    maxNotionalUsd?,              // default DEMO_SWAP_CAP_USD = 10_000
+    planId, stepId, walletId: string;
+    demoMode?: boolean;           // default true
+  },
+  walletBundle?: WalletClientBundle,
+): Promise<{ txHash?: string; amountOut?: number; mocked: boolean; executionRecord: ExecutionRecord }>
+// Throws if demoMode && amountIn > maxNotionalUsd.
+
+// 4. ERC-20 stablecoin transfer (real onchain write)
+transferStablecoin(
+  params: {
+    from: string;           // must equal signer address (transfer sends from msg.sender)
+    to: string;
+    amount: number;         // human-readable USDC
+    tokenAddress?,          // defaults to MOCK_USDC_ADDRESS
+    tokenDecimals?,         // defaults to 6
+    signerPrivateKey?,      // defaults to DEMO_APPROVER_KEY
+    maxAmountUsd?,          // default DEMO_TRANSFER_CAP_USD = 10_000
+    planId, stepId, walletId: string;
+    demoMode?: boolean;     // default true
+  },
+  injected?: { publicClient?, walletBundle? },
+): Promise<{ txHash: string; amount: number; executionRecord: ExecutionRecord; balanceSnapshot: BalanceSnapshot }>
+// Calls ERC-20 transfer(to, amount), waits for receipt, reads post-transfer balance.
+// Throws if demoMode && amount > maxAmountUsd.
+// Throws if `from` ≠ signer address.
+// Throws if tx reverts (insufficient balance etc.).
+```
+
+**Demo caps:** `DEMO_TRANSFER_CAP_USD = 10_000`, `DEMO_SWAP_CAP_USD = 10_000` (match VENDOR_PAYMENT policy max).  
+**Default token:** MockUSDC at `MOCK_USDC_ADDRESS` (env-overridable, 6 decimals).  
+**Tests:** 28 unit tests in `app/src/test/adapters/base-sepolia-helpers.test.ts`; 120/120 pass, zero TS errors.  
+**Consumers:** TF-020 (`execute_step` API) and TF-011 (`ExecutionRunner`) import from `@/adapters/base-sepolia`.
+
+**TF-014 · Custody: Adapter interface + MockCustodyAdapter scaffold**
+
+_Real custody APIs and their policy/approval flows are out of v1 scope. This ticket defines the interface so the rest of the system can treat custody accounts as first-class objects without blocking on live integrations._
+
+- Define a `CustodyAdapter` TypeScript interface in `app/src/adapters/custody/types.ts`:
+  ```ts
+  interface CustodyAccount { id: string; name: string; balance: number; currency: string; custodian: string }
+  interface CustodyAdapter {
+    listAccounts(): Promise<CustodyAccount[]>
+    getBalance(accountId: string): Promise<number>
+    initiateTransfer(from: string, to: string, amount: number, currency: string): Promise<{ transferId: string }>
+  }
+  ```
+- Implement `MockCustodyAdapter` in `app/src/adapters/custody/mock.ts`:
+  - Returns 2–3 fake custody accounts with realistic-looking balances (e.g. Fireblocks hot wallet, BitGo cold vault)
+  - `initiateTransfer` returns a mock `transferId` with a simulated `status: "PENDING"` after a short delay
+  - Exports `CUSTODY_MOCKED = true` constant
+- Portfolio UI: custody accounts rendered in the accounts list with badge **"Coming soon – custody integration mocked"**; balances shown as illustrative only
+- Settings page: "Connect custodian" section shows a disabled button with tooltip "Real custody API integration coming soon — requires API keys and policy configuration"
+- **Out of v1 scope:** Live API keys for BitGo, Fireblocks, Coinbase Custody, Anchorage; custody-native approval flows; multi-sig policy enforcement via custodian
+
+**TF-007 · Backend: Market context service** ✅ Complete (2026-05-02)
+
+**Endpoint:** `POST /api/market_context`  
+**Body:** `{ portfolioId?: string }` (defaults to `"default"`)  
+**Returns:** `MarketContext` (see shape below)
+
+**Pipeline (all three APIs run in series):**
+1. **Exa** — 3 parallel queries (treasury stablecoin risk, FX hedge, DeFi liquidity) → up to 15 highlights
+2. **Perplexity sonar** — synthesises a 3–4 sentence CFO-facing narrative from Exa highlights
+3. **Fireworks llama-v3p1-70b-instruct** — extracts structured JSON from the narrative
+
+**Mock fallback:** when any of `EXA_API_KEY`, `PERPLEXITY_API_KEY`, or `FIREWORKS_API_KEY` is absent, or when any upstream call fails, a deterministic mock `MarketContext` is returned — the endpoint never returns 5xx to the client.
+
+**Cache:** in-memory `Map<portfolioId, {data, expiresAt}>`, TTL = 15 minutes. Warm hits skip all API calls.
+
+**Storage:** every response (live or mock) is written to `MARKET_CONTEXT_STORE` (module-level `Map<marketContextId, MarketContext>`). This allows `ActionProposal.rationale.marketContextId` to reference a stored context (replaces a real DB in v1).
+
+**MarketContext JSON shape:**
+```typescript
+// app/src/types/domain.ts
+export type MarketContextId = Brand<string, "MarketContextId">;
+
+export interface MarketContext {
+  marketContextId: MarketContextId;  // e.g. "ctx_1714648200000_a1b2c3d4"
+  portfolioId: string;
+  summary: string;          // 1–2 sentence CFO-facing narrative
+  riskFactors: string[];    // 3–5 items, each ≤ 90 chars
+  liquidityNotes: string[]; // 2–4 items, each ≤ 90 chars
+  timestamp: string;        // ISO 8601
+}
+```
+
+**Files:**
+- `app/api/market_context.ts` — Vercel serverless handler (exports `buildMockMarketContext`, `MARKET_CONTEXT_STORE`)
+- `app/src/services/market-context.ts` — client `fetchMarketContext(portfolioId?)` wrapper
+- `app/src/test/market-context.test.ts` — 17 tests (client service, mock builder, schema contract)
+- `app/vite.config.ts` — `marketContextProxy` dev plugin (same pipeline logic, no proxy needed in prod)
+- `FIREWORKS_API_KEY` added to `.env.example` and `.env.local`
+
+**Usage by Hermes (TF-003):**
+```typescript
+// tool_market_context → calls /api/market_context
+const ctx = await fetchMarketContext(portfolioId);
+// ctx.marketContextId can be stored in ActionProposal.rationale.marketContextId
+```
+
+**Tests:** 17 new tests added; total test count = 120 (all pass, zero TS errors introduced)
+
+**TF-020 · Backend: `execute_step` API (no NemoClaw)**
+- Implement `POST /api/execute_step` switching on `type` (`QUOTE`, `ONRAMP`, `OFFRAMP`, `SWAP`, `TRANSFER`, `LEDGER_WRITE`, `NOOP`) calling CDP/Base Sepolia helpers
+- Return `{ raw, txHash?, quoteId? }` in the same shape as `ExecutionPlan.steps[i].result`
+
+**TF-011 · ExecutionRunner service**
+- Implement runner that reads `ExecutionPlan.steps`, calls `/api/execute_step`, updates step status/result/error, writes `ExecutionRecord`, and recomputes `BalanceSnapshot`
+- Expose `POST /api/plans/:id/execute` and `GET /api/plans/:id/status`
+
+---
+
+#### Track C – AI (Hermes)
+
+**TF-003 · Hermes: Tools without NemoClaw**
+- Deploy Hermes with tools:
+  - `tool_get_portfolio_state` → `/api/portfolio_state`
+  - `tool_market_context` → `/api/market_context`
+  - `tool_execute_step` → `/api/execute_step` (optional for later)
+- System prompt enforces use of `ActionProposal` / `ExecutionPlan` schemas and `mode: DEMO` defaults
+
+**TF-008 · Hermes proposal loop: generate, validate, store**
+- Implement `POST /api/proposals/generate` → Hermes generates `ActionProposal[]`, backend validates against schema + policy, stores with `UNDER_REVIEW` status
+- Add `GET /api/proposals` / `GET /api/proposals/:id` / `PATCH /api/proposals/:id` (approve/reject/edit)
+
+**TF-010 · Execution plan generation**
+- Implement `POST /api/proposals/:id/plan` → Hermes converts an approved `ActionProposal` into an `ExecutionPlan`, backend validates + stores as `PENDING_APPROVAL`
+
+---
+
+#### Track D – Frontend
+
+**TF-009 · Frontend: Dashboard + Treasury Inbox**
+- Dashboard: show wallets (demo + external), balances, exposure view, and simple alerts from `BalanceSnapshot`/`Exposure`
+- Treasury Inbox: list proposals, show rationale + policy checks, allow approve/reject/edit via backend endpoints
+- Portfolio summary widget using a small backend endpoint that wraps Hermes's NL posture summary
+
+**TF-012 · Frontend: Plan review + live execution + audit**
+- Plan review page: inspect steps, approve/cancel, and trigger execute
+- Live monitor: poll `/api/plans/:id/status` and show per-step status and Basescan links for tx hashes
+- Execution history tab: list `ExecutionRecord[]` with filters for DEMO vs PRODUCTION
+
+---
+
+#### Optional – Future integrations
+
+**TF-013 · OpenFX: Scaffold as future integration (no merge)**
+- Keep OpenFX types/client code under `integrations/openfx`, gated by `OPENFX_ENABLED=false` and described in `docs/openfx-integration.md`
+
+**TF-N1 · NemoClaw plug-in (later, behind flag)**
+- Deploy NemoClaw with skills mirroring backend helpers
+- Update `/api/execute_step` to forward to NemoClaw when `NEMOCLAW_ENABLED=true`, mapping results into the same response shape
+
+---
+
+### Parallel Execution Schedule
+
+#### Week 1: Stabilize platform + core rails
+- **Session 1 (Track A):** TF-000 (cleanup) + TF-004 (WalletConnect documentation)
+- **Session 2 (Track B):** TF-001 (domain model) + migrations
+- **Session 3 (Track B):** TF-005 (CDP) and TF-006 (Base Sepolia helpers) in parallel once TF-001 is in place
+
+_Outcome: clean Base Sepolia app, new tables, backend can talk to CDP sandbox and Base Sepolia._
+
+#### Week 2: Market context + Hermes + proposals
+- **Session 4 (Track B):** TF-007 (market context) + TF-020 (`execute_step` API)
+- **Session 5 (Track C):** TF-003 (Hermes tools) + quick manual tests for `ActionProposal[]`
+- **Session 6 (Track C):** TF-008 (proposal loop) + TF-010 (plan generation) once helpers are stable
+
+_Outcome: `/api/proposals/generate` and `/api/proposals/:id/plan` work end-to-end._
+
+#### Week 3: UI & execution loop
+- **Session 7 (Track D):** TF-009 (Dashboard + Inbox), wired to real backend endpoints
+- **Session 8 (Track B):** TF-011 (ExecutionRunner) using `/api/execute_step`
+- **Session 9 (Track D):** TF-012 (Plan review + live execution + history)
+
+_Outcome: full demo flow — connect wallet → see balances → generate proposal → approve plan → execute on Base Sepolia → see history._
+
+#### Anytime: Future rails
+- **Session X:** TF-013 (OpenFX docs & flag) — fully decoupled
+- **Session Y (later):** TF-N1 (NemoClaw plug-in) once offloading execution to an agent skill layer
+
+---
+
+### Current Branch State
+
+**Branch:** `plan1-integration` | **As of:** 2026-05-02
+
+**Sessions 1–5 complete.** All work committed to `origin/plan1-integration`.
+
+| Session | Tickets | Status |
+|---------|---------|--------|
+| Session 1 (Track A) | TF-000 (cleanup), TF-004 (WalletConnect docs) | ✅ Complete |
+| Session 2 (Track B) | TF-001 (domain model + schemas) | ✅ Complete |
+| Session 3 (Track B) | TF-005 (CDP embedded wallets), TF-006 (Base Sepolia helpers) | ✅ Complete |
+| Session 4 (Track B) | TF-007 (market context service) | ✅ Complete |
+| Session 5 (Track B) | Platform wrap-up — all adapters, tests, env wiring | ✅ Complete |
+| **Session 6** | **TF-020** (`POST /api/execute_step`) | 🔜 Next |
+
+**Session 6 preconditions met:** TF-005 (CDP adapters) and TF-006 (Base Sepolia helpers) are complete and tested. TF-020 can begin immediately.
+
+**Test suite:** 120/120 passing, zero TS errors.
